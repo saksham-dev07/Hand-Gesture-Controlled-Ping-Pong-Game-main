@@ -35,6 +35,7 @@
 ---
 
 ## 🎯 Overview
+![alt text](20251017_192017.jpg)
 
 This is an interactive **Ping Pong (Pong) game** that you control entirely with **hand gestures** using your webcam! Built with Python, OpenCV, and MediaPipe, this project demonstrates real-time computer vision and gesture recognition in an entertaining gaming experience.
 
