@@ -2,6 +2,7 @@
 Hand Gesture Controlled Ping Pong Game
 Main application file that orchestrates all modules
 
+OPTIMIZED: CPU-only version with all GPU code removed
 Refactored into modular components:
 - config.py: All constants and configuration
 - hand_detector.py: Hand detection and gesture recognition
@@ -29,11 +30,8 @@ class HandPongGame:
         """Initialize the game"""
         print("🚀 Initializing Hand Pong Game...")
         
-        # Check for GPU support
-        self.use_gpu = HandDetector.check_gpu_support()
-        
-        # Initialize components
-        self.hand_detector = HandDetector(use_gpu=self.use_gpu)
+        # Initialize components (CPU-only, no GPU checks)
+        self.hand_detector = HandDetector()
         self.game_engine = GameEngine()
         
         # Camera
@@ -44,6 +42,11 @@ class HandPongGame:
         self.game_running = False
         self.gesture_pause_enabled = True
         
+        # Gesture cooldown to prevent spam
+        self.last_thumbs_up_time = 0
+        self.last_thumbs_down_time = 0
+        self.gesture_cooldown = 1.0  # seconds between gesture activations
+        
         # Performance tracking
         self.fps_counter = deque(maxlen=FPS_BUFFER_SIZE)
         self.last_frame_time = time.time()
@@ -51,7 +54,7 @@ class HandPongGame:
         
         # Setup UI
         self.root = tk.Tk()
-        self.ui_manager = UIManager(self.root, use_gpu=self.use_gpu)
+        self.ui_manager = UIManager(self.root)
         
         # Bind button commands
         self.ui_manager.start_stop_button.config(command=self.toggle_game)
@@ -173,18 +176,25 @@ class HandPongGame:
             
             # Update game physics (only if not paused)
             if not self.game_engine.is_paused():
-                # Get hand data
+                # Get hand data from detector (with paddle positions if available)
+                # Note: paddle positions are stored in the hand_detector after process_frame
+                left_paddle_y = None
+                right_paddle_y = None
+                
+                # Get smoothed paddle positions from the last processed frame
+                if hasattr(self.hand_detector, 'left_hand_smoothed_y') and self.hand_detector.left_hand_detected:
+                    left_paddle_y = self.hand_detector.left_hand_smoothed_y
+                if hasattr(self.hand_detector, 'right_hand_smoothed_y') and self.hand_detector.right_hand_detected:
+                    right_paddle_y = self.hand_detector.right_hand_smoothed_y
+                
                 left_hand_data = {
                     'detected': self.hand_detector.left_hand_detected,
-                    'paddle_y': None
+                    'paddle_y': left_paddle_y
                 }
                 right_hand_data = {
                     'detected': self.hand_detector.right_hand_detected,
-                    'paddle_y': None
+                    'paddle_y': right_paddle_y
                 }
-                
-                # Update with actual paddle positions if hands detected
-                # (Hand detector processes this internally)
                 
                 # Update game engine
                 self.game_engine.update(left_hand_data, right_hand_data)
@@ -215,26 +225,42 @@ class HandPongGame:
         # Process frame with hand detector
         processed_frame, hand_data = self.hand_detector.process_frame(frame)
         
-        # Update paddles based on hand data
-        if hand_data['left_detected'] and hand_data['left_paddle_y'] is not None:
-            self.game_engine.update_paddle_from_hand(1, hand_data['left_paddle_y'])
+        # Note: Paddle updates are now handled in the game_loop via game_engine.update()
+        # This ensures the is_hand_controlled flag is set correctly
         
-        if hand_data['right_detected'] and hand_data['right_paddle_y'] is not None:
-            self.game_engine.update_paddle_from_hand(2, hand_data['right_paddle_y'])
+        # Handle gesture pause/resume
+        if self.gesture_pause_enabled:
+            # PAUSE when both fists are detected
+            if hand_data['both_fists_just_detected']:
+                if not self.game_engine.is_paused():
+                    self.game_engine.set_pause(True)
+                    self.ui_manager.update_pause_button(True)
+                    print("✊✊ Both fists detected - PAUSED!")
+            
+            # RESUME when both hands are open
+            elif hand_data.get('both_hands_just_opened', False):
+                if self.game_engine.is_paused():
+                    self.game_engine.set_pause(False)
+                    self.ui_manager.update_pause_button(False)
+                    print("👐👐 Both hands open - RESUMED!")
         
-        # Handle gesture pause
-        if self.gesture_pause_enabled and hand_data['both_fists_just_detected']:
-            is_paused = self.game_engine.toggle_pause()
-            self.ui_manager.update_pause_button(is_paused)
-            if is_paused:
-                print("✊✊ Both fists detected - PAUSED!")
-            else:
-                print("👐👐 Hands open - RESUMED!")
+        # Handle thumbs up/down for ball speed control (with cooldown)
+        current_time = time.time()
+        
+        if hand_data.get('thumbs_up', False):
+            if current_time - self.last_thumbs_up_time > self.gesture_cooldown:
+                self.game_engine.increase_ball_speed()
+                self.last_thumbs_up_time = current_time
+        
+        if hand_data.get('thumbs_down', False):
+            if current_time - self.last_thumbs_down_time > self.gesture_cooldown:
+                self.game_engine.decrease_ball_speed()
+                self.last_thumbs_down_time = current_time
         
         # Update camera preview (less frequently)
         if self.frame_count % CAMERA_PREVIEW_UPDATE_FREQ == 0:
             paused = self.game_engine.is_paused() and hand_data['both_fists']
-            self.ui_manager.update_camera_preview(processed_frame, self.use_gpu, paused)
+            self.ui_manager.update_camera_preview(processed_frame, paused)
     
     def update_display(self):
         """Update all display elements"""

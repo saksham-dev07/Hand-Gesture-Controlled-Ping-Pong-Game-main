@@ -38,7 +38,9 @@ MODEL_COMPLEXITY = 0  # 0 = fastest, 1 = balanced
 HAND_CONFIDENCE_THRESHOLD = 0.7
 
 # Hand position smoothing
-HAND_POSITION_BUFFER_SIZE = 5
+HAND_POSITION_BUFFER_SIZE = 8  # Increased for better stability
+HAND_POSITION_SMOOTHING_FACTOR = 0.3  # Exponential smoothing (0-1, lower = smoother)
+HAND_POSITION_DEADZONE = 0.008  # Minimum movement threshold to reduce jitter (0-1 normalized)
 
 # ============================================================================
 # FIST DETECTION SETTINGS
@@ -55,8 +57,10 @@ THUMB_CLOSED_RATIO = 1.3   # Thumb curl threshold
 # Ball settings
 BALL_RADIUS = 8
 BALL_INITIAL_SPEED = 5
-BALL_MAX_SPEED = 12
+BALL_MAX_SPEED = 18  # Increased max speed for thumbs up
+BALL_MIN_SPEED = 3   # Minimum speed for thumbs down
 BALL_SPEED_INCREASE = 1.05  # Speed multiplier on paddle hit
+BALL_SPEED_CHANGE_AMOUNT = 1.5  # Speed change per thumbs up/down gesture
 
 # Paddle settings
 PADDLE_WIDTH = 10
@@ -116,10 +120,10 @@ COLOR_INFO = '#60a5fa'
 COLOR_INFO_DARK = '#3b82f6'
 
 # Game object colors
-COLOR_PADDLE_ACTIVE = '#10b981'
-COLOR_PADDLE_INACTIVE = '#475569'
-COLOR_PADDLE_OUTLINE_ACTIVE = '#34d399'
-COLOR_PADDLE_OUTLINE_INACTIVE = '#64748b'
+COLOR_PADDLE_ACTIVE = '#00ff00'  # Bright green when hand-controlled
+COLOR_PADDLE_INACTIVE = '#475569'  # Gray when AI-controlled
+COLOR_PADDLE_OUTLINE_ACTIVE = '#00ff00'  # Bright green outline
+COLOR_PADDLE_OUTLINE_INACTIVE = '#64748b'  # Gray outline
 COLOR_BALL_ACTIVE = '#60a5fa'
 COLOR_BALL_INACTIVE = '#e5e7eb'
 COLOR_BALL_OUTLINE_ACTIVE = '#3b82f6'
@@ -184,9 +188,14 @@ WELCOME_MESSAGE = """🎮 HAND PONG GAME
 4️⃣ Move hands UP/DOWN to control paddles
 
 ✊ GESTURE CONTROLS:
-• Make FISTS with BOTH hands = PAUSE
-• Open hands = RESUME
+• Make FISTS with BOTH hands = PAUSE game
+• Open BOTH hands (show palms) = RESUME game
 • Hands turn RED when fist detected!
+• Hands turn BLUE/GREEN when open!
+
+⚡ BALL SPEED CONTROLS:
+• 👍 THUMBS UP = Increase ball speed
+• 👎 THUMBS DOWN = Decrease ball speed
 
 ⌨️ KEYBOARD SHORTCUTS:
 • F11: Toggle Fullscreen

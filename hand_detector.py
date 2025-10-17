@@ -1,6 +1,7 @@
 """
 Hand Detection Module
 Handles MediaPipe hand detection, tracking, and gesture recognition (fist detection)
+OPTIMIZED: CPU-only version with all GPU code removed
 """
 
 import cv2
@@ -13,9 +14,9 @@ from config import *
 class HandDetector:
     """Handles hand detection and gesture recognition using MediaPipe"""
     
-    def __init__(self, use_gpu=False):
+    def __init__(self):
         """Initialize the hand detector"""
-        self.use_gpu = use_gpu
+        print("💻 Using optimized CPU mode for hand detection")
         
         # Initialize MediaPipe with optimized settings
         self.mp_hands = mp.solutions.hands
@@ -34,17 +35,26 @@ class HandDetector:
         self.left_hand_fist = False
         self.right_hand_fist = False
         self.both_fists_detected = False
+        self.both_hands_open = False  # Track when both hands are open
+        
+        # Thumbs up/down detection
+        self.thumbs_up_detected = False
+        self.thumbs_down_detected = False
         
         # Hand position smoothing
         self.left_hand_positions = deque(maxlen=HAND_POSITION_BUFFER_SIZE)
         self.right_hand_positions = deque(maxlen=HAND_POSITION_BUFFER_SIZE)
+        
+        # Exponential smoothing for stable paddle movement
+        self.left_hand_smoothed_y = None
+        self.right_hand_smoothed_y = None
         
         # Debug mode
         self.debug_fist_detection = False
         
         # Frame counting for optimization
         self.frame_count = 0
-        
+    
     def toggle_debug(self):
         """Toggle debug mode for fist detection"""
         self.debug_fist_detection = not self.debug_fist_detection
@@ -62,21 +72,6 @@ class HandDetector:
             print("\n" + "="*60)
             print("🔍 DEBUG MODE DISABLED")
             print("="*60 + "\n")
-    
-    @staticmethod
-    def check_gpu_support():
-        """Check if GPU/CUDA is available for OpenCV"""
-        try:
-            if cv2.cuda.getCudaEnabledDeviceCount() > 0:
-                print(f"🎮 GPU DETECTED! Found {cv2.cuda.getCudaEnabledDeviceCount()} CUDA device(s)")
-                print(f"   Device: {cv2.cuda.printCudaDeviceInfo(0)}")
-                return True
-            else:
-                print("💻 No GPU detected, using CPU (this is fine!)")
-                return False
-        except:
-            print("💻 GPU acceleration not available, using CPU")
-            return False
     
     @staticmethod
     def _distance(p1, p2):
@@ -149,6 +144,80 @@ class HandDetector:
         
         return is_fist
     
+    def is_thumbs_up(self, landmarks):
+        """
+        Detect thumbs up gesture
+        Returns True if thumb is extended upward and other fingers are closed
+        """
+        wrist = landmarks.landmark[0]
+        thumb_tip = landmarks.landmark[4]
+        thumb_ip = landmarks.landmark[3]
+        thumb_mcp = landmarks.landmark[2]
+        
+        index_tip = landmarks.landmark[8]
+        middle_tip = landmarks.landmark[12]
+        ring_tip = landmarks.landmark[16]
+        pinky_tip = landmarks.landmark[20]
+        
+        index_pip = landmarks.landmark[6]
+        middle_pip = landmarks.landmark[10]
+        ring_pip = landmarks.landmark[14]
+        pinky_pip = landmarks.landmark[18]
+        
+        # Thumb should be extended upward (tip higher than base in y-coordinate)
+        thumb_extended_up = thumb_tip.y < thumb_mcp.y - 0.1
+        
+        # Thumb should be reasonably far from wrist
+        thumb_dist = self._distance(thumb_tip, wrist)
+        thumb_extended = thumb_dist > 0.2
+        
+        # Other fingers should be curled (tips close to or below PIPs)
+        fingers_curled = (
+            index_tip.y >= index_pip.y - 0.05 and
+            middle_tip.y >= middle_pip.y - 0.05 and
+            ring_tip.y >= ring_pip.y - 0.05 and
+            pinky_tip.y >= pinky_pip.y - 0.05
+        )
+        
+        return thumb_extended_up and thumb_extended and fingers_curled
+    
+    def is_thumbs_down(self, landmarks):
+        """
+        Detect thumbs down gesture
+        Returns True if thumb is extended downward and other fingers are closed
+        """
+        wrist = landmarks.landmark[0]
+        thumb_tip = landmarks.landmark[4]
+        thumb_ip = landmarks.landmark[3]
+        thumb_mcp = landmarks.landmark[2]
+        
+        index_tip = landmarks.landmark[8]
+        middle_tip = landmarks.landmark[12]
+        ring_tip = landmarks.landmark[16]
+        pinky_tip = landmarks.landmark[20]
+        
+        index_pip = landmarks.landmark[6]
+        middle_pip = landmarks.landmark[10]
+        ring_pip = landmarks.landmark[14]
+        pinky_pip = landmarks.landmark[18]
+        
+        # Thumb should be extended downward (tip lower than base in y-coordinate)
+        thumb_extended_down = thumb_tip.y > thumb_mcp.y + 0.1
+        
+        # Thumb should be reasonably far from wrist
+        thumb_dist = self._distance(thumb_tip, wrist)
+        thumb_extended = thumb_dist > 0.2
+        
+        # Other fingers should be curled (tips close to or below PIPs)
+        fingers_curled = (
+            index_tip.y >= index_pip.y - 0.05 and
+            middle_tip.y >= middle_pip.y - 0.05 and
+            ring_tip.y >= ring_pip.y - 0.05 and
+            pinky_tip.y >= pinky_pip.y - 0.05
+        )
+        
+        return thumb_extended_down and thumb_extended and fingers_curled
+    
     def process_frame(self, frame):
         """
         Process a camera frame and detect hands
@@ -164,7 +233,7 @@ class HandDetector:
             # Convert to RGB for MediaPipe
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             
-            # Process hands
+            # Process hands (MediaPipe uses optimized CPU processing)
             results = self.hands.process(rgb_frame)
             
             # Reset hand detection
@@ -172,6 +241,8 @@ class HandDetector:
             self.right_hand_detected = False
             self.left_hand_fist = False
             self.right_hand_fist = False
+            self.thumbs_up_detected = False
+            self.thumbs_down_detected = False
             
             left_paddle_y = None
             right_paddle_y = None
@@ -189,12 +260,21 @@ class HandDetector:
                     if confidence < HAND_CONFIDENCE_THRESHOLD:
                         continue
                     
-                    # Detect fist gesture with optional debug output
+                    # Detect gestures
+                    is_fist_gesture = self.is_fist(landmarks, debug=self.debug_fist_detection)
+                    is_thumbs_up_gesture = self.is_thumbs_up(landmarks)
+                    is_thumbs_down_gesture = self.is_thumbs_down(landmarks)
+                    
+                    # Track thumbs up/down (only need one hand for speed control)
+                    if is_thumbs_up_gesture:
+                        self.thumbs_up_detected = True
+                    if is_thumbs_down_gesture:
+                        self.thumbs_down_detected = True
+                    
+                    # Debug output for fist detection
                     if self.debug_fist_detection:
                         print(f"\n{'='*50}")
                         print(f"🖐️ Analyzing {hand_label} hand (confidence: {confidence:.2f})")
-                    
-                    is_fist_gesture = self.is_fist(landmarks, debug=self.debug_fist_detection)
                     
                     # Get hand position (using middle finger tip - landmark 12)
                     middle_finger = landmarks.landmark[12]
@@ -211,14 +291,26 @@ class HandDetector:
                         self.left_hand_detected = True
                         self.left_hand_fist = is_fist_gesture
                         self.left_hand_positions.append(paddle_y_normalized)
-                        # Smooth movement
-                        left_paddle_y = sum(self.left_hand_positions) / len(self.left_hand_positions)
+                        
+                        # Apply exponential smoothing for stable movement
+                        if self.left_hand_smoothed_y is None:
+                            self.left_hand_smoothed_y = paddle_y_normalized
+                        else:
+                            self.left_hand_smoothed_y = (HAND_POSITION_SMOOTHING_FACTOR * paddle_y_normalized + 
+                                                         (1 - HAND_POSITION_SMOOTHING_FACTOR) * self.left_hand_smoothed_y)
+                        left_paddle_y = self.left_hand_smoothed_y
                     else:  # Hand on RIGHT side of screen
                         self.right_hand_detected = True
                         self.right_hand_fist = is_fist_gesture
                         self.right_hand_positions.append(paddle_y_normalized)
-                        # Smooth movement
-                        right_paddle_y = sum(self.right_hand_positions) / len(self.right_hand_positions)
+                        
+                        # Apply exponential smoothing for stable movement
+                        if self.right_hand_smoothed_y is None:
+                            self.right_hand_smoothed_y = paddle_y_normalized
+                        else:
+                            self.right_hand_smoothed_y = (HAND_POSITION_SMOOTHING_FACTOR * paddle_y_normalized + 
+                                                          (1 - HAND_POSITION_SMOOTHING_FACTOR) * self.right_hand_smoothed_y)
+                        right_paddle_y = self.right_hand_smoothed_y
                     
                     # Draw hand landmarks on frame (every N frames for performance)
                     if self.frame_count % HAND_LANDMARK_DRAW_FREQ == 0:
@@ -246,19 +338,29 @@ class HandDetector:
                 current_both_fists = (self.left_hand_fist and self.right_hand_fist and 
                                      self.left_hand_detected and self.right_hand_detected)
                 
-                # Detect transition (for pause/resume)
+                # Update both hands open state (both detected but neither making fist)
+                current_both_hands_open = (not self.left_hand_fist and not self.right_hand_fist and
+                                          self.left_hand_detected and self.right_hand_detected)
+                
+                # Detect transitions (for pause/resume)
                 both_fists_just_detected = current_both_fists and not self.both_fists_detected
+                both_hands_just_opened = current_both_hands_open and not self.both_hands_open
+                
                 self.both_fists_detected = current_both_fists
+                self.both_hands_open = current_both_hands_open
             else:
                 self.both_fists_detected = False
+                self.both_hands_open = False
                 both_fists_just_detected = False
+                both_hands_just_opened = False
         else:
             # Not processing hands this frame, maintain previous state
             left_paddle_y = None
             right_paddle_y = None
             both_fists_just_detected = False
+            both_hands_just_opened = False
         
-        # Add visual feedback for fist gesture on the frame
+        # Add visual feedback for gestures on the frame
         h, w, _ = frame.shape
         
         if self.left_hand_fist and self.left_hand_detected:
@@ -269,6 +371,19 @@ class HandDetector:
             cv2.putText(frame, "RIGHT FIST", (w - 150, 30), 
                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, COLOR_FIST, 2)
         
+        if self.both_hands_open:
+            cv2.putText(frame, "BOTH HANDS OPEN", (w // 2 - 100, 30), 
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.7, COLOR_HAND_RIGHT, 2)
+        
+        # Visual feedback for thumbs up/down
+        if self.thumbs_up_detected:
+            cv2.putText(frame, "THUMBS UP - SPEED UP!", (w // 2 - 140, 60), 
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+        
+        if self.thumbs_down_detected:
+            cv2.putText(frame, "THUMBS DOWN - SLOW DOWN!", (w // 2 - 170, 60), 
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 165, 255), 2)
+        
         hand_data = {
             'left_detected': self.left_hand_detected,
             'right_detected': self.right_hand_detected,
@@ -276,6 +391,10 @@ class HandDetector:
             'right_fist': self.right_hand_fist,
             'both_fists': self.both_fists_detected,
             'both_fists_just_detected': both_fists_just_detected,
+            'both_hands_open': self.both_hands_open,
+            'both_hands_just_opened': both_hands_just_opened,
+            'thumbs_up': self.thumbs_up_detected,
+            'thumbs_down': self.thumbs_down_detected,
             'left_paddle_y': left_paddle_y,
             'right_paddle_y': right_paddle_y
         }
@@ -286,6 +405,8 @@ class HandDetector:
         """Clear hand position buffers"""
         self.left_hand_positions.clear()
         self.right_hand_positions.clear()
+        self.left_hand_smoothed_y = None
+        self.right_hand_smoothed_y = None
     
     def close(self):
         """Clean up resources"""

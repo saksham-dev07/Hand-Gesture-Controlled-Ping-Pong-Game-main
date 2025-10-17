@@ -1,6 +1,7 @@
 """
 UI Manager Module
 Handles all Tkinter GUI components and camera preview
+OPTIMIZED: CPU-only version
 """
 
 import tkinter as tk
@@ -13,16 +14,14 @@ from config import *
 class UIManager:
     """Manages the game's user interface"""
     
-    def __init__(self, root, use_gpu=False):
+    def __init__(self, root):
         """
         Initialize the UI Manager
         
         Args:
             root: Tkinter root window
-            use_gpu: Whether GPU is available
         """
         self.root = root
-        self.use_gpu = use_gpu
         self.is_fullscreen = False
         
         # Widget references
@@ -114,13 +113,10 @@ class UIManager:
         badges_frame = tk.Frame(header_frame, bg=BG_SECONDARY, pady=5)
         badges_frame.pack()
         
-        gpu_text = "🚀 GPU ACCELERATED" if self.use_gpu else "💻 CPU MODE"
-        gpu_bg = "#065f46" if self.use_gpu else BG_TERTIARY
-        gpu_fg = COLOR_SUCCESS if self.use_gpu else TEXT_SECONDARY
-        
-        gpu_badge = tk.Label(badges_frame, text=gpu_text, font=FONT_BADGE,
-                            fg=gpu_fg, bg=gpu_bg, padx=12, pady=4, relief=tk.FLAT)
-        gpu_badge.pack(side=tk.LEFT, padx=5)
+        # CPU Mode badge (removed GPU check)
+        cpu_badge = tk.Label(badges_frame, text="💻 OPTIMIZED CPU MODE", font=FONT_BADGE,
+                            fg=TEXT_SECONDARY, bg=BG_TERTIARY, padx=12, pady=4, relief=tk.FLAT)
+        cpu_badge.pack(side=tk.LEFT, padx=5)
         
         fullscreen_hint = tk.Label(badges_frame, text="🖥️ Press F11 for Fullscreen",
                                    font=FONT_BADGE_SMALL, fg=TEXT_DARK, bg=BG_TERTIARY,
@@ -337,22 +333,12 @@ class UIManager:
         else:
             self.pause_button.config(text="⏸️ PAUSE", bg=COLOR_WARNING)
     
-    def update_camera_preview(self, frame, use_gpu=False, paused_overlay=False):
-        """Update camera preview with frame"""
+    def update_camera_preview(self, frame, paused_overlay=False):
+        """Update camera preview with frame (CPU-only)"""
         try:
-            # Resize frame for preview
-            if use_gpu:
-                try:
-                    gpu_frame = cv2.cuda_GpuMat()
-                    gpu_frame.upload(frame)
-                    gpu_resized = cv2.cuda.resize(gpu_frame, (CAMERA_PREVIEW_WIDTH, CAMERA_PREVIEW_HEIGHT))
-                    preview_frame = gpu_resized.download()
-                except:
-                    preview_frame = cv2.resize(frame, (CAMERA_PREVIEW_WIDTH, CAMERA_PREVIEW_HEIGHT),
-                                             interpolation=cv2.INTER_LINEAR)
-            else:
-                preview_frame = cv2.resize(frame, (CAMERA_PREVIEW_WIDTH, CAMERA_PREVIEW_HEIGHT),
-                                         interpolation=cv2.INTER_LINEAR)
+            # Resize frame for preview (CPU only)
+            preview_frame = cv2.resize(frame, (CAMERA_PREVIEW_WIDTH, CAMERA_PREVIEW_HEIGHT),
+                                     interpolation=cv2.INTER_LINEAR)
             
             # Add paused overlay if needed
             if paused_overlay:

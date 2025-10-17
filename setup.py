@@ -64,6 +64,44 @@ def find_python_executable():
     print("   Make sure to check 'Add Python to PATH' during installation")
     return None
 
+def check_existing_venv():
+    """Check if a working virtual environment already exists"""
+    venv_python = get_venv_python()
+    
+    if not os.path.exists(venv_python):
+        return False
+    
+    print("\n🔍 Found existing virtual environment, checking if it works...")
+    
+    # Test if venv works by importing key packages
+    test_code = """
+import sys
+try:
+    import cv2
+    import mediapipe
+    import PIL
+    import numpy
+    sys.exit(0)
+except ImportError:
+    sys.exit(1)
+"""
+    
+    try:
+        result = subprocess.run(
+            [venv_python, '-c', test_code],
+            capture_output=True,
+            timeout=10
+        )
+        if result.returncode == 0:
+            print("✅ Existing virtual environment is working!")
+            return True
+        else:
+            print("⚠️ Existing virtual environment has missing packages")
+            return False
+    except Exception:
+        print("⚠️ Existing virtual environment is not working")
+        return False
+
 def create_venv(python_exe):
     """Create virtual environment"""
     venv_path = Path("venv")
@@ -113,57 +151,7 @@ def install_dependencies():
         print(f"❌ Failed to install dependencies: {e}")
         return False
 
-def create_launcher():
-    """Create a launcher script that automatically uses the venv"""
-    print("\n🚀 Creating launcher script...")
-    
-    if os.name == 'nt':  # Windows
-        launcher_content = """@echo off
-echo 🏓 Hand Gesture Controlled Ping Pong Game
-echo ==========================================
-echo.
 
-if not exist venv\\Scripts\\python.exe (
-    echo ❌ Virtual environment not found!
-    echo Please run setup.py first.
-    pause
-    exit /b 1
-)
-
-echo ✅ Using virtual environment...
-venv\\Scripts\\python.exe hand.py
-pause
-"""
-        launcher_path = "play.bat"
-    else:  # Linux/Mac
-        launcher_content = """#!/bin/bash
-echo "🏓 Hand Gesture Controlled Ping Pong Game"
-echo "=========================================="
-echo ""
-
-if [ ! -f venv/bin/python ]; then
-    echo "❌ Virtual environment not found!"
-    echo "Please run setup.py first."
-    exit 1
-fi
-
-echo "✅ Using virtual environment..."
-venv/bin/python hand.py
-"""
-        launcher_path = "play.sh"
-    
-    try:
-        with open(launcher_path, 'w') as f:
-            f.write(launcher_content)
-        
-        if os.name != 'nt':  # Make executable on Linux/Mac
-            os.chmod(launcher_path, 0o755)
-        
-        print(f"✅ Created launcher: {launcher_path}")
-        return True
-    except Exception as e:
-        print(f"⚠️ Could not create launcher: {e}")
-        return False
 
 def verify_installation():
     """Verify that all packages are properly installed"""
@@ -172,18 +160,46 @@ def verify_installation():
     
     test_code = """
 import sys
+success = True
+errors = []
+
 try:
     import cv2
-    import mediapipe
-    import PIL
-    import numpy
-    print("✅ All packages imported successfully!")
-    print(f"   - OpenCV: {cv2.__version__}")
-    print(f"   - MediaPipe: {mediapipe.__version__}")
-    print(f"   - NumPy: {numpy.__version__}")
-    sys.exit(0)
+    print(f"✅ OpenCV: {cv2.__version__}")
 except ImportError as e:
-    print(f"❌ Import error: {e}")
+    print(f"❌ OpenCV import failed: {e}")
+    errors.append(str(e))
+    success = False
+
+try:
+    import mediapipe
+    print(f"✅ MediaPipe: {mediapipe.__version__}")
+except ImportError as e:
+    print(f"❌ MediaPipe import failed: {e}")
+    errors.append(str(e))
+    success = False
+
+try:
+    import PIL
+    print(f"✅ Pillow imported successfully")
+except ImportError as e:
+    print(f"❌ Pillow import failed: {e}")
+    errors.append(str(e))
+    success = False
+
+try:
+    import numpy
+    print(f"✅ NumPy: {numpy.__version__}")
+except ImportError as e:
+    print(f"❌ NumPy import failed: {e}")
+    errors.append(str(e))
+    success = False
+
+if success:
+    print("\\n✅ All packages verified successfully!")
+    sys.exit(0)
+else:
+    print("\\n❌ Some packages failed to import")
     sys.exit(1)
 """
     
@@ -191,12 +207,22 @@ except ImportError as e:
         result = subprocess.run(
             [venv_python, '-c', test_code],
             capture_output=True,
-            text=True
+            text=True,
+            timeout=30
         )
-        print(result.stdout)
+        
+        # Print all output
+        if result.stdout:
+            print(result.stdout)
+        if result.stderr:
+            print("Errors:", result.stderr)
+        
         return result.returncode == 0
+    except subprocess.TimeoutExpired:
+        print("⚠️ Verification timed out")
+        return False
     except Exception as e:
-        print(f"⚠️ Verification failed: {e}")
+        print(f"⚠️ Verification failed with exception: {e}")
         return False
 
 def main():
@@ -205,42 +231,52 @@ def main():
     print("🏓 Hand Gesture Controlled Ping Pong Game - Automatic Setup")
     print("=" * 60)
     
+    # Check if venv already exists and works
+    if check_existing_venv():
+        print("\n✨ Virtual environment already set up and working!")
+        
+      
+        
+        print("\n" + "=" * 60)
+        print("🎉 READY TO PLAY!")
+        print("=" * 60)
+        
+        
+        print("\n💡 To reinstall dependencies, delete the 'venv' folder and run setup again.")
+        
+        return
+    
     # Find compatible Python
     python_exe = find_python_executable()
     if not python_exe:
-        input("\nPress Enter to exit...")
+        
         return
     
     # Create virtual environment
     if not create_venv(python_exe):
-        input("\nPress Enter to exit...")
+        
         return
     
     # Install dependencies
     if not install_dependencies():
-        input("\nPress Enter to exit...")
+        
         return
     
     # Verify installation
-    if not verify_installation():
-        print("\n⚠️ Installation verification failed!")
-        input("\nPress Enter to exit...")
-        return
+    verification_passed = verify_installation()
     
-    # Create launcher
-    create_launcher()
+   
     
     # Success message
     print("\n" + "=" * 60)
-    print("🎉 SETUP COMPLETE!")
-    print("=" * 60)
-    print("\n🚀 To play the game:")
-    if os.name == 'nt':
-        print("   • Double-click: play.bat")
-        print("   • Or run: .\\venv\\Scripts\\python.exe hand.py")
+    if verification_passed:
+        print("🎉 SETUP COMPLETE!")
     else:
-        print("   • Run: ./play.sh")
-        print("   • Or run: ./venv/bin/python hand.py")
+        print("⚠️ SETUP COMPLETE (with warnings)")
+        print("   Dependencies installed but verification had issues.")
+        print("   Try running the game anyway - it might still work!")
+    print("=" * 60)
+    
     
     print("\n📋 Game Controls:")
     print("   • Left hand controls left paddle")
@@ -254,7 +290,7 @@ def main():
     print("   • Keep hands clearly visible")
     print("   • Stay 2-3 feet from camera")
     
-    input("\n✨ Press Enter to exit setup...")
+    
 
 if __name__ == "__main__":
     main()

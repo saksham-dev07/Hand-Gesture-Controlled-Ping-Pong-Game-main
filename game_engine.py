@@ -44,6 +44,14 @@ class GameEngine:
         """Set pause state"""
         self.paused = paused
     
+    def increase_ball_speed(self):
+        """Increase ball speed (thumbs up)"""
+        self.ball.increase_speed()
+    
+    def decrease_ball_speed(self):
+        """Decrease ball speed (thumbs down)"""
+        self.ball.decrease_speed()
+    
     def update_paddle_from_hand(self, paddle_num, y_normalized):
         """
         Update paddle position from hand tracking
@@ -53,10 +61,10 @@ class GameEngine:
             y_normalized: Normalized Y position (0-1)
         """
         if paddle_num == 1:
-            self.paddle1.set_position_normalized(y_normalized)
+            self.paddle1.set_position_normalized(y_normalized, use_deadzone=True)
             self.paddle1.is_hand_controlled = True
         elif paddle_num == 2:
-            self.paddle2.set_position_normalized(y_normalized)
+            self.paddle2.set_position_normalized(y_normalized, use_deadzone=True)
             self.paddle2.is_hand_controlled = True
     
     def update_ai_paddle(self, paddle):

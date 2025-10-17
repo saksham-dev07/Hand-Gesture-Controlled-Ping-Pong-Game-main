@@ -14,6 +14,7 @@ class Ball:
         """Initialize the ball"""
         self.radius = BALL_RADIUS
         self.max_speed = BALL_MAX_SPEED
+        self.min_speed = BALL_MIN_SPEED
         self.reset()
     
     def reset(self):
@@ -92,6 +93,42 @@ class Ball:
     def get_velocity(self):
         """Get ball velocity as tuple"""
         return (self.dx, self.dy)
+    
+    def increase_speed(self, amount=BALL_SPEED_CHANGE_AMOUNT):
+        """
+        Increase ball speed by a fixed amount
+        
+        Args:
+            amount: Speed increase amount
+        """
+        current_speed = self.get_speed()
+        if current_speed < self.max_speed:
+            # Calculate new speed
+            new_speed = min(current_speed + amount, self.max_speed)
+            # Maintain direction, update magnitude
+            if current_speed > 0:
+                scale = new_speed / current_speed
+                self.dx *= scale
+                self.dy *= scale
+            print(f"⚡ Ball speed increased to {new_speed:.1f}")
+    
+    def decrease_speed(self, amount=BALL_SPEED_CHANGE_AMOUNT):
+        """
+        Decrease ball speed by a fixed amount
+        
+        Args:
+            amount: Speed decrease amount
+        """
+        current_speed = self.get_speed()
+        if current_speed > self.min_speed:
+            # Calculate new speed
+            new_speed = max(current_speed - amount, self.min_speed)
+            # Maintain direction, update magnitude
+            if current_speed > 0:
+                scale = new_speed / current_speed
+                self.dx *= scale
+                self.dy *= scale
+            print(f"🐌 Ball speed decreased to {new_speed:.1f}")
 
 
 class Paddle:
@@ -111,6 +148,7 @@ class Paddle:
         self.y = (CANVAS_HEIGHT - self.height) // 2  # Start in center
         self.is_left = is_left
         self.is_hand_controlled = False
+        self._last_y = self.y  # For deadzone calculation
     
     def move_up(self, speed=PADDLE_SPEED):
         """Move paddle up"""
@@ -120,16 +158,25 @@ class Paddle:
         """Move paddle down"""
         self.y = min(CANVAS_HEIGHT - self.height, self.y + speed)
     
-    def set_position_normalized(self, y_normalized):
+    def set_position_normalized(self, y_normalized, use_deadzone=False):
         """
         Set paddle position using normalized y (0-1)
         
         Args:
             y_normalized: Y position normalized to 0-1 range
+            use_deadzone: If True, apply deadzone to reduce small movements
         """
         target_y = y_normalized * CANVAS_HEIGHT
-        # Center the paddle on the target position
-        self.y = max(0, min(target_y - self.height // 2, CANVAS_HEIGHT - self.height))
+        new_y = max(0, min(target_y - self.height // 2, CANVAS_HEIGHT - self.height))
+        
+        # Apply deadzone to reduce jitter
+        if use_deadzone and hasattr(self, '_last_y'):
+            y_diff = abs(new_y - self._last_y)
+            if y_diff < HAND_POSITION_DEADZONE * CANVAS_HEIGHT:
+                return  # Movement too small, ignore
+        
+        self.y = new_y
+        self._last_y = new_y
     
     def set_position(self, y):
         """Set absolute Y position (with bounds checking)"""
