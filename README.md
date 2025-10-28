@@ -513,7 +513,7 @@ This project is licensed under the **MIT License** - see below for details:
 ```
 MIT License
 
-Copyright (c) 2025 [Your Name]
+Copyright (c) 2025 Saksham Agarwal
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -550,9 +550,9 @@ SOFTWARE.
 Having issues? Need help?
 
 - 📖 Check the [Troubleshooting](#-troubleshooting) section
-- 🐛 Open an [Issue](https://github.com/yourusername/Hand-Gesture-Controlled-Ping-Pong-Game/issues)
-- 💬 Join discussions in the [Discussions](https://github.com/yourusername/Hand-Gesture-Controlled-Ping-Pong-Game/discussions) tab
-- 📧 Contact: your.email@example.com
+- 🐛 Open an [Issue](https://github.com/saksham-dev07/Hand-Gesture-Controlled-Ping-Pong-Game/issues)
+- 💬 Join discussions in the [Discussions](https://github.com/saksham-dev07/Hand-Gesture-Controlled-Ping-Pong-Game/discussions) tab
+- 📧 Contact: sakmmm07@gmail.com
 
 ---
 
