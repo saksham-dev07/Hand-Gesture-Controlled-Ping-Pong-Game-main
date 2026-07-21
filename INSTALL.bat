@@ -23,7 +23,7 @@ if not exist venv\Scripts\python.exe (
 )
 
 REM Run the refactored version using venv Python
-venv\Scripts\python.exe hand_refactored.py
+venv\Scripts\python.exe src\main.py
 
 REM Pause to see any errors
 if errorlevel 1 (

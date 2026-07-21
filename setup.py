@@ -1,7 +1,7 @@
 """
 Automatic Setup Script for Hand Gesture Controlled Ping Pong Game
 This script will:
-1. Find compatible Python version (3.11 or 3.12)
+1. Find compatible Python version (3.11, 3.12, or 3.13)
 2. Create virtual environment
 3. Install all dependencies
 4. Configure the environment
@@ -13,23 +13,26 @@ import shutil
 from pathlib import Path
 
 def find_python_executable():
-    """Find a compatible Python version (3.11 or 3.12) on the system"""
+    """Find a compatible Python version (3.11, 3.12, or 3.13) on the system"""
     print("🔍 Searching for compatible Python version...")
     
     # Check current Python
     current_version = sys.version_info
     print(f"   Current Python: {current_version.major}.{current_version.minor}.{current_version.micro}")
     
-    if current_version.major == 3 and current_version.minor in [11, 12]:
+    if current_version.major == 3 and current_version.minor in [11, 12, 13]:
         print(f"✅ Current Python {current_version.major}.{current_version.minor} is compatible!")
         return sys.executable
     
     # Try to find other Python versions
     possible_commands = [
+        'py -3.13',
         'py -3.12',
         'py -3.11', 
+        'python3.13',
         'python3.12',
         'python3.11',
+        'python313',
         'python312',
         'python311'
     ]
@@ -59,8 +62,8 @@ def find_python_executable():
         except (subprocess.TimeoutExpired, Exception):
             continue
     
-    print("\n⚠️ No compatible Python version found (3.11 or 3.12)")
-    print("📥 Please install Python 3.12 from: https://www.python.org/downloads/")
+    print("\n⚠️ No compatible Python version found (3.11, 3.12, or 3.13)")
+    print("📥 Please install Python 3.13 from: https://www.python.org/downloads/")
     print("   Make sure to check 'Add Python to PATH' during installation")
     return None
 

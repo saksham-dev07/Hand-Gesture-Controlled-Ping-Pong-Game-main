@@ -35,7 +35,7 @@
 ---
 
 ## 🎯 Overview
-![alt text](20251017_192017.jpg)
+![alt text](assets/demo.jpg)
 
 This is an interactive **Ping Pong (Pong) game** that you control entirely with **hand gestures** using your webcam! Built with Python, OpenCV, and MediaPipe, this project demonstrates real-time computer vision and gesture recognition in an entertaining gaming experience.
 
@@ -166,7 +166,7 @@ If you don't have Python 3.11 or 3.12, download from [python.org](https://www.py
 
 4. **Run the game**:
    ```bash
-   python hand_refactored.py
+   python src/main.py
    ```
 
 ### Alternative: Using Setup Script
@@ -183,7 +183,7 @@ The setup script will handle everything automatically!
 
 ### Starting the Game
 
-1. **Launch** the application using `INSTALL.bat` or `python hand_refactored.py`
+1. **Launch** the application using `INSTALL.bat` or `python src/main.py`
 2. **Position yourself** 2-3 feet from the camera with good lighting
 3. **Click "Start Camera"** button or press the button in the UI
 4. **Show your hand(s)** to the camera:
@@ -300,12 +300,16 @@ AI_ERROR_MARGIN = 15           # AI imperfection
 ```
 Hand-Gesture-Controlled-Ping-Pong-Game-main/
 │
-├── 📄 hand_refactored.py      # Main application entry point
-├── 📄 config.py                # All configuration constants
-├── 📄 hand_detector.py         # Hand tracking & gesture recognition
-├── 📄 game_engine.py           # Game logic & physics
-├── 📄 game_objects.py          # Ball and Paddle classes
-├── 📄 ui_manager.py            # Tkinter GUI management
+├── 📁 src/                     # Source code directory
+│   ├── 📄 main.py              # Main application entry point
+│   ├── 📄 config.py            # All configuration constants
+│   ├── 📄 hand_detector.py     # Hand tracking & gesture recognition
+│   ├── 📄 game_engine.py       # Game logic & physics
+│   ├── 📄 game_objects.py      # Ball and Paddle classes
+│   └── 📄 ui_manager.py        # Tkinter GUI management
+│
+├── 📁 assets/                  # Game assets
+│   └── 📄 demo.jpg             # Demonstration image
 │
 ├── 📄 setup.py                 # Automatic setup script
 ├── 📄 INSTALL.bat              # Windows installer
@@ -319,7 +323,7 @@ Hand-Gesture-Controlled-Ping-Pong-Game-main/
 
 | Module | Purpose |
 |--------|---------|
-| **hand_refactored.py** | Main game loop, coordinates all modules |
+| **src/main.py** | Main game loop, coordinates all modules |
 | **config.py** | Central configuration file for all settings |
 | **hand_detector.py** | MediaPipe integration, gesture recognition |
 | **game_engine.py** | Game logic, collision detection, scoring, AI |
@@ -347,7 +351,7 @@ Hand-Gesture-Controlled-Ping-Pong-Game-main/
 ```
 ┌─────────────────────────────────────────┐
 │         Main Application                │
-│         (hand_refactored.py)            │
+│           (src/main.py)                 │
 └──────────────┬──────────────────────────┘
                │
        ┌───────┴───────┐
