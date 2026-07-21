@@ -311,12 +311,12 @@ Hand-Gesture-Controlled-Ping-Pong-Game-main/
 ├── 📁 assets/                  # Game assets
 │   └── 📄 demo.jpg             # Demonstration image
 │
+├── 📄 .gitignore               # Git ignore file
+├── 📄 LICENSE                  # MIT License
 ├── 📄 setup.py                 # Automatic setup script
 ├── 📄 INSTALL.bat              # Windows installer
 ├── 📄 requirements.txt         # Python dependencies
-├── 📄 README.md                # This file
-│
-└── 📁 __pycache__/            # Python cache (auto-generated)
+└── 📄 README.md                # This file
 ```
 
 ### Module Descriptions
