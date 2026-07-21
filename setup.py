@@ -10,7 +10,14 @@ import subprocess
 import sys
 import os
 import shutil
+import urllib.request
 from pathlib import Path
+
+if sys.stdout.encoding.lower() != 'utf-8':
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
 
 def find_python_executable():
     """Find a compatible Python version (3.11, 3.12, or 3.13) on the system"""
@@ -154,7 +161,31 @@ def install_dependencies():
         print(f"❌ Failed to install dependencies: {e}")
         return False
 
-
+def download_model():
+    """Download the required models for MediaPipe"""
+    models = {
+        "gesture_recognizer.task": "https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task"
+    }
+    
+    assets_dir = Path("assets")
+    assets_dir.mkdir(exist_ok=True)
+    
+    all_success = True
+    for model_name, model_url in models.items():
+        model_path = assets_dir / model_name
+        if model_path.exists():
+            print(f"\\n✅ Model file already exists at {model_path}")
+            continue
+            
+        print(f"\\n📥 Downloading model {model_name} to {model_path}...")
+        try:
+            urllib.request.urlretrieve(model_url, model_path)
+            print(f"✅ Model {model_name} downloaded successfully!")
+        except Exception as e:
+            print(f"❌ Failed to download model {model_name}: {e}")
+            all_success = False
+            
+    return all_success
 
 def verify_installation():
     """Verify that all packages are properly installed"""
@@ -168,41 +199,41 @@ errors = []
 
 try:
     import cv2
-    print(f"✅ OpenCV: {cv2.__version__}")
+    print(f"[OK] OpenCV: {cv2.__version__}")
 except ImportError as e:
-    print(f"❌ OpenCV import failed: {e}")
+    print(f"[FAIL] OpenCV import failed: {e}")
     errors.append(str(e))
     success = False
 
 try:
     import mediapipe
-    print(f"✅ MediaPipe: {mediapipe.__version__}")
+    print(f"[OK] MediaPipe: {mediapipe.__version__}")
 except ImportError as e:
-    print(f"❌ MediaPipe import failed: {e}")
+    print(f"[FAIL] MediaPipe import failed: {e}")
     errors.append(str(e))
     success = False
 
 try:
     import PIL
-    print(f"✅ Pillow imported successfully")
+    print(f"[OK] Pillow imported successfully")
 except ImportError as e:
-    print(f"❌ Pillow import failed: {e}")
+    print(f"[FAIL] Pillow import failed: {e}")
     errors.append(str(e))
     success = False
 
 try:
     import numpy
-    print(f"✅ NumPy: {numpy.__version__}")
+    print(f"[OK] NumPy: {numpy.__version__}")
 except ImportError as e:
-    print(f"❌ NumPy import failed: {e}")
+    print(f"[FAIL] NumPy import failed: {e}")
     errors.append(str(e))
     success = False
 
 if success:
-    print("\\n✅ All packages verified successfully!")
+    print("\\n[OK] All packages verified successfully!")
     sys.exit(0)
 else:
-    print("\\n❌ Some packages failed to import")
+    print("\\n[FAIL] Some packages failed to import")
     sys.exit(1)
 """
     
@@ -264,6 +295,9 @@ def main():
     if not install_dependencies():
         
         return
+        
+    # Download model
+    download_model()
     
     # Verify installation
     verification_passed = verify_installation()

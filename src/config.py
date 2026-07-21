@@ -8,19 +8,29 @@ Contains all constants, settings, and configuration values
 # ============================================================================
 
 # Canvas dimensions
-CANVAS_WIDTH = 600
-CANVAS_HEIGHT = 400
+CANVAS_WIDTH = 720
+CANVAS_HEIGHT = 480
 
 # Frame processing
-FRAME_SKIP = 2  # Process hands every N frames for better performance
+FRAME_SKIP = 1  # No skipping needed with background thread
+
+# Game Modes & States
+MODE_1PLAYER = '1P_VS_AI'
+MODE_2PLAYER = '2P_LOCAL'
+
+STATE_MENU = 'MENU'
+STATE_CALIBRATING = 'CALIBRATING'
+STATE_PLAYING = 'PLAYING'
+
+CALIBRATION_COUNTDOWN_SECONDS = 3
 
 # ============================================================================
 # CAMERA SETTINGS
 # ============================================================================
 
-# Camera resolution (reduced for better performance)
-CAMERA_WIDTH = 320
-CAMERA_HEIGHT = 240
+# Camera resolution
+CAMERA_WIDTH = 640
+CAMERA_HEIGHT = 480
 CAMERA_FPS = 60
 CAMERA_BUFFER_SIZE = 1
 
@@ -30,17 +40,17 @@ CAMERA_BUFFER_SIZE = 1
 
 # Hand detection settings
 MAX_NUM_HANDS = 2
-MIN_DETECTION_CONFIDENCE = 0.5
-MIN_TRACKING_CONFIDENCE = 0.5
-MODEL_COMPLEXITY = 0  # 0 = fastest, 1 = balanced
+MIN_DETECTION_CONFIDENCE = 0.6
+MIN_TRACKING_CONFIDENCE = 0.6
+# MODEL_COMPLEXITY is no longer used in the modern MediaPipe Tasks API
 
 # Hand confidence threshold
-HAND_CONFIDENCE_THRESHOLD = 0.7
+HAND_CONFIDENCE_THRESHOLD = 0.5
 
 # Hand position smoothing
 HAND_POSITION_BUFFER_SIZE = 8  # Increased for better stability
 HAND_POSITION_SMOOTHING_FACTOR = 0.3  # Exponential smoothing (0-1, lower = smoother)
-HAND_POSITION_DEADZONE = 0.008  # Minimum movement threshold to reduce jitter (0-1 normalized)
+HAND_POSITION_DEADZONE = 0.0  # Disabled deadzone, relying on EMA for smooth movement
 
 # ============================================================================
 # FIST DETECTION SETTINGS
@@ -66,8 +76,8 @@ BALL_SPEED_CHANGE_AMOUNT = 1.5  # Speed change per thumbs up/down gesture
 PADDLE_WIDTH = 10
 PADDLE_HEIGHT = 80
 PADDLE_SPEED = 6
-PADDLE1_X = 10  # Left paddle
-PADDLE2_X = 580  # Right paddle
+PADDLE1_X = 20  # Left paddle
+PADDLE2_X = 690  # Right paddle (CANVAS_WIDTH - PADDLE_WIDTH - 20)
 
 # ============================================================================
 # AI SETTINGS
@@ -82,13 +92,13 @@ AI_SPEED = 4  # AI paddle movement speed
 # ============================================================================
 
 # Main window
-WINDOW_WIDTH = 900
-WINDOW_HEIGHT = 800
+WINDOW_WIDTH = 1150
+WINDOW_HEIGHT = 650
 WINDOW_TITLE = "🎮 Hand Gesture Pong - AI Edition"
 
 # Camera preview dimensions
-CAMERA_PREVIEW_WIDTH = 400
-CAMERA_PREVIEW_HEIGHT = 300
+CAMERA_PREVIEW_WIDTH = 352
+CAMERA_PREVIEW_HEIGHT = 264
 
 # ============================================================================
 # COLORS (Modern Dark Theme)
@@ -168,9 +178,9 @@ FPS_BUFFER_SIZE = 30
 TARGET_FRAME_TIME = 16  # milliseconds (60 FPS)
 
 # Update frequencies
-CAMERA_PREVIEW_UPDATE_FREQ = 2  # Update every N frames
+CAMERA_PREVIEW_UPDATE_FREQ = 1  # Update every frame
 FPS_DISPLAY_UPDATE_FREQ = 5     # Update every N frames
-HAND_LANDMARK_DRAW_FREQ = 2     # Draw every N frames
+HAND_LANDMARK_DRAW_FREQ = 1     # Draw every frame (no skipping needed on background thread)
 
 # ============================================================================
 # MESSAGES

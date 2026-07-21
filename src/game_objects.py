@@ -146,9 +146,16 @@ class Paddle:
         self.width = PADDLE_WIDTH
         self.height = PADDLE_HEIGHT
         self.y = (CANVAS_HEIGHT - self.height) // 2  # Start in center
+        self.target_y = self.y
         self.is_left = is_left
         self.is_hand_controlled = False
         self._last_y = self.y  # For deadzone calculation
+    
+    def update_smooth(self, smoothing_factor=0.3):
+        """Smoothly interpolate paddle position towards target_y for buttery smooth 60fps movement"""
+        if self.is_hand_controlled:
+            self.y += (self.target_y - self.y) * smoothing_factor
+            self._last_y = self.y
     
     def move_up(self, speed=PADDLE_SPEED):
         """Move paddle up"""
@@ -175,12 +182,12 @@ class Paddle:
             if y_diff < HAND_POSITION_DEADZONE * CANVAS_HEIGHT:
                 return  # Movement too small, ignore
         
-        self.y = new_y
-        self._last_y = new_y
+        self.target_y = new_y
     
     def set_position(self, y):
         """Set absolute Y position (with bounds checking)"""
         self.y = max(0, min(y, CANVAS_HEIGHT - self.height))
+        self.target_y = self.y
     
     def get_center_y(self):
         """Get Y coordinate of paddle center"""

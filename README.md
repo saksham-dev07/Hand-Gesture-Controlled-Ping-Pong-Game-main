@@ -5,6 +5,7 @@
 ![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12-blue?logo=python&logoColor=white)
 ![OpenCV](https://img.shields.io/badge/OpenCV-4.8.1-green?logo=opencv)
 ![MediaPipe](https://img.shields.io/badge/MediaPipe-0.10.14-orange)
+![CustomTkinter](https://img.shields.io/badge/CustomTkinter-5.2.0-blue)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 ![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20Mac-lightgrey)
 
@@ -17,65 +18,69 @@
 ---
 
 ## 🎯 Overview
-![alt text](assets/demo.jpg)
+![Demo](assets/demo.png)
 
-This is an interactive **Ping Pong (Pong) game** that you control entirely with **hand gestures** using your webcam! Built with Python, OpenCV, and MediaPipe, this project demonstrates real-time computer vision and gesture recognition in an entertaining gaming experience.
+This is an interactive **Ping Pong (Pong) game** controlled entirely with **hand gestures** via your webcam! Built with Python, OpenCV, MediaPipe Tasks API, and CustomTkinter, this project demonstrates real-time multi-threaded computer vision and gesture recognition for a fluid, lag-free gaming experience.
 
 The game features:
-- ✋ **Hand tracking** for paddle control
-- 👊 **Fist gestures** for game control (pause/resume)
-- 👍👎 **Thumbs up/down** for ball speed adjustment
-- 🤖 **AI opponent** when only one hand is detected
-- 🎨 **Modern GUI** with real-time camera preview
-- ⚡ **Optimized performance** for smooth gameplay on CPU
+- ⚡ **Multi-Threaded Camera Pipeline**: OpenCV capture and MediaPipe gesture recognition run asynchronously on a background thread (`CameraThread`), keeping GUI and physics locked at a rock-solid 60 FPS.
+- 🎯 **Main Menu & Game Modes**: Interactive canvas menu allowing mode switching between **🤖 1-Player (vs AI)** and **👥 2-Player (Local Multiplayer)**.
+- ⏳ **3-Second Calibration & Countdown**: Pre-match countdown screen providing real-time hand detection feedback before the ball drops.
+- ✋ **Hand Tracking & Interpolation**: Ultra-smooth exponential smoothing and target position interpolation to eliminate webcam movement jitter.
+- ✊ **Fist Gestures**: Pause/resume match using double fist or open palm gestures.
+- 👍👎 **Thumbs Speed Control**: Dynamically adjust ball velocity using Thumbs Up / Thumbs Down gestures.
+- 🎨 **Modern Dark Mode GUI**: Built with CustomTkinter, featuring real-time camera previews, live FPS counters, and modal dialogs.
 
 ---
 
 ## ✨ Features
 
 ### 🎮 Gameplay Features
-- **Dual Hand Control**: Control both paddles simultaneously or play against AI
-- **Smart AI Opponent**: Adaptive AI with adjustable difficulty
-- **Dynamic Ball Physics**: Realistic bouncing with angle-based paddle hits
-- **Real-time Scoring**: Track your score with live updates
-- **Pause/Resume**: Use fist gestures to control game flow
+- **Main Menu**: Interactive canvas menu for selecting game modes before starting a match.
+- **Game Modes**:
+  - 🤖 **1-Player Mode**: Play against an adaptive AI opponent using your left hand.
+  - 👥 **2-Player Mode**: Local 2-player action where both left and right hands control the paddles.
+- **3-Second Calibration & Countdown**: 3... 2... 1... GO! countdown overlay validating hand tracking status before match start.
+- **Dynamic Ball Physics**: Realistic bouncing, hit position angle calculations, and speed scaling on paddle hits.
+- **Real-time Scoring & FPS Metrics**: Live score tracking and performance monitoring.
+- **Gesture Control Flow**: Pause/Resume game with double fists or open palms.
 
 ### 👋 Hand Gesture Recognition
-- **Palm Detection**: Smooth paddle control with position smoothing
-- **Fist Detection**: Advanced finger-curl detection for pause/resume
-- **Thumbs Gestures**: Speed control with thumbs up/down
-- **Gesture Cooldown**: Prevents accidental activations
+- **Position Tracking**: Middle finger landmark tracking mapped directly to paddle coordinates.
+- **Fist Detection**: Gesture recognition using MediaPipe's Tasks API for pause/resume triggering.
+- **Thumbs Gestures**: Speed up (Thumbs Up 👍) or slow down (Thumbs Down 👎) the ball in real time.
+- **Gesture Cooldown**: Built-in 1.0s cooldown to prevent gesture spamming.
 
-### 🖥️ User Interface
-- **Live Camera Preview**: See yourself and hand detection landmarks
-- **Status Indicators**: Real-time hand detection and camera status
-- **FPS Counter**: Monitor performance
-- **Fullscreen Mode**: Immersive gaming experience (F11)
-- **Debug Mode**: Detailed gesture detection logging (D key)
+### 🖥️ User Interface & Polish
+- **Side-by-Side Dashboard Layout**: Dedicated game pitch canvas on the left, live camera preview and controls dashboard on the right.
+- **Live Camera Preview**: Real-time webcam feed with colored hand skeleton landmarks.
+- **Status Badges**: Visual indicator icons for camera feed and hand tracking state (`Left: ✓`, `Right: ✓`).
+- **Fullscreen Support**: Toggle fullscreen with **F11**, exit with **Escape**.
+- **Debug Mode**: Toggle console gesture logging by pressing **D**.
 
-### ⚡ Performance Optimizations
-- **CPU-Optimized**: Works efficiently without GPU
-- **Frame Skipping**: Intelligent processing for better FPS
-- **Exponential Smoothing**: Reduces hand jitter for stable control
-- **Adaptive Camera Settings**: Configurable resolution and FPS
+### ⚡ Technical & Threading Architecture
+- **Asynchronous Worker Thread (`CameraThread`)**: Moves camera frame acquisition (`cv2.VideoCapture`) and ML model inference (`GestureRecognizer`) off the main thread.
+- **Frame ID Synchronization**: The main loop safe-fetches new frames via thread locks without blocking the GUI or game physics.
+- **Position Interpolation (`update_smooth`)**: Interpolates 30 FPS camera coordinates to 60 FPS physics updates for buttery-smooth paddle motion.
 
 ---
 
-## 🎬 Demo
+## 🎬 Gameplay Modes & Controls
 
 ### Gameplay Modes
 
-| Solo Mode (AI Opponent) | Two Player Mode |
-|------------------------|-----------------|
-| Show one hand to play against AI | Show both hands for two-player action |
-| AI adapts to ball position | Each player controls their own paddle |
+| Mode | Description | Controls |
+|------|-------------|----------|
+| 🤖 **1-Player Mode (vs AI)** | Play solo against a smart adaptive AI opponent | Left Hand controls Left Paddle, Right Paddle is AI |
+| 👥 **2-Player Mode (Local)** | Local multiplayer for 2 players in front of camera | Left Hand = Left Paddle, Right Hand = Right Paddle |
 
-### Gesture Controls
+### Gesture Controls Summary
 
 | Gesture | Action | Visual |
 |---------|--------|--------|
-| **Open Palm** | Control paddle | ✋ |
-| **Fist (Both Hands)** | Pause/Resume | 👊👊 |
+| **Open Palm** | Control paddle up/down | ✋ |
+| **Fist (Both Hands)** | Pause game | ✊✊ |
+| **Open Palms (Both Hands)** | Resume game | 👐👐 |
 | **Thumbs Up** | Increase ball speed | 👍 |
 | **Thumbs Down** | Decrease ball speed | 👎 |
 
@@ -84,20 +89,11 @@ The game features:
 ## 📦 Prerequisites
 
 ### System Requirements
-- **Operating System**: Windows, Linux, or macOS
-- **Python**: Version 3.11 or 3.12 (required)
-- **Webcam**: Built-in or external camera
-- **RAM**: Minimum 4GB recommended
-- **Processor**: Multi-core CPU recommended for smooth gameplay
-
-### Python Version Check
-```bash
-python --version
-# or
-py --version
-```
-
-If you don't have Python 3.11 or 3.12, download from [python.org](https://www.python.org/downloads/)
+- **Operating System**: Windows 10/11, Linux, or macOS
+- **Python**: Version 3.11 or 3.12 (recommended)
+- **Webcam**: Built-in laptop webcam or USB camera
+- **RAM**: Minimum 4GB (8GB recommended)
+- **Processor**: Multi-core CPU for multi-threaded performance
 
 ---
 
@@ -107,26 +103,21 @@ If you don't have Python 3.11 or 3.12, download from [python.org](https://www.py
 
 1. **Clone or Download** this repository:
    ```bash
-   git clone https://github.com/yourusername/Hand-Gesture-Controlled-Ping-Pong-Game.git
+   git clone https://github.com/saksham-dev07/Hand-Gesture-Controlled-Ping-Pong-Game.git
    cd Hand-Gesture-Controlled-Ping-Pong-Game-main
    ```
 
-2. **Run the Installer** (Windows):
+2. **Run Automatic Setup**:
    ```bash
    INSTALL.bat
    ```
-   
-   This will automatically:
-   - Find compatible Python version (3.11 or 3.12)
-   - Create a virtual environment
-   - Install all dependencies
-   - Launch the game
+   *This automatically sets up a working virtual environment, installs dependencies, downloads MediaPipe models if missing, and launches the app!*
 
 ### Manual Installation (All Platforms)
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/yourusername/Hand-Gesture-Controlled-Ping-Pong-Game.git
+   git clone https://github.com/saksham-dev07/Hand-Gesture-Controlled-Ping-Pong-Game.git
    cd Hand-Gesture-Controlled-Ping-Pong-Game-main
    ```
 
@@ -135,8 +126,8 @@ If you don't have Python 3.11 or 3.12, download from [python.org](https://www.py
    # Windows
    python -m venv venv
    venv\Scripts\activate
-   
-   # Linux/Mac
+
+   # Linux/macOS
    python3 -m venv venv
    source venv/bin/activate
    ```
@@ -151,128 +142,49 @@ If you don't have Python 3.11 or 3.12, download from [python.org](https://www.py
    python src/main.py
    ```
 
-### Alternative: Using Setup Script
-
-```bash
-python setup.py
-```
-
-The setup script will handle everything automatically!
-
 ---
 
 ## 🎮 How to Play
 
-### Starting the Game
-
-1. **Launch** the application using `INSTALL.bat` or `python src/main.py`
-2. **Position yourself** 2-3 feet from the camera with good lighting
-3. **Click "Start Camera"** button or press the button in the UI
-4. **Show your hand(s)** to the camera:
-   - **Left hand** → Controls left paddle
-   - **Right hand** → Controls right paddle
-   - **One hand only** → Play against AI opponent
-
-### Game Objectives
-
-- **Defend your side**: Keep the ball from passing your paddle
-- **Score points**: Make the ball pass your opponent's paddle
-- **First to 10 wins** (configurable in `config.py`)
-
-### Controls
-
-| Action | Gesture |
-|--------|---------|
-| Move paddle up/down | Move hand up/down (open palm) |
-| Pause game | Make fists with both hands |
-| Resume game | Open both hands or make fists again |
-| Increase ball speed | Thumbs up 👍 |
-| Decrease ball speed | Thumbs down 👎 |
-| Toggle fullscreen | Press F11 |
-| Exit fullscreen | Press Escape |
-| Debug mode | Press D |
-
----
-
-## 🤚 Gesture Controls
-
-### Hand Detection
-- **Open Palm**: Default control mode - move your hand up/down to control paddle
-- **Position**: Your hand's Y-position maps to paddle position
-- **Smoothing**: Built-in smoothing prevents jittery movements
-
-### Fist Detection (Pause/Resume)
-- **Both Hands**: Make fists with BOTH hands simultaneously
-- **Strict Detection**: All fingers must be curled to avoid false positives
-- **Hold for 1 second**: Maintain gesture briefly for activation
-- **Visual Feedback**: Status indicators show fist detection
-
-### Thumbs Up/Down (Speed Control)
-- **Thumbs Up** 👍: Increase ball speed (cooldown: 1 second)
-- **Thumbs Down** 👎: Decrease ball speed (cooldown: 1 second)
-- **Range**: Ball speed clamped between min/max values
-
-### Debug Mode
-Press **D** key to toggle debug logging:
-- See finger extension ratios
-- View finger curl detection
-- Monitor gesture recognition details
+1. **Launch App**: Open the game via `INSTALL.bat` or `python src/main.py`.
+2. **Main Menu**: Choose your mode on the sidebar panel (**🤖 1-Player** or **👥 2-Player**).
+3. **Start Match**: Click **▶️ START MATCH**.
+4. **Calibration Phase**: A 3-second countdown will start while verifying your hand tracking status (`Left Hand: TRACKED ✓`).
+5. **Game On**:
+   - Move your hand **UP/DOWN** to move your paddle.
+   - Close **BOTH FISTS** to pause the game.
+   - Open **BOTH PALMS** to resume.
+   - Show **THUMBS UP** to boost ball speed or **THUMBS DOWN** to slow it down.
+6. **Return to Menu**: Click **⏹️ STOP MATCH** at any time to return to the Main Menu.
 
 ---
 
 ## ⚙️ Configuration
 
-All game settings can be customized in **`config.py`**:
+All settings can be customized in **`src/config.py`**:
 
-### Game Settings
 ```python
-CANVAS_WIDTH = 600          # Game canvas width
-CANVAS_HEIGHT = 400         # Game canvas height
-FRAME_SKIP = 2             # Process hands every N frames
-```
+# Game & Canvas Dimensions
+CANVAS_WIDTH = 720          # Pitch width in pixels
+CANVAS_HEIGHT = 480         # Pitch height in pixels
 
-### Camera Settings
-```python
-CAMERA_WIDTH = 320          # Camera resolution width
-CAMERA_HEIGHT = 240         # Camera resolution height
-CAMERA_FPS = 60            # Target FPS
-```
+# Camera Settings
+CAMERA_WIDTH = 640          # Camera capture width
+CAMERA_HEIGHT = 480         # Camera capture height
+CAMERA_FPS = 60            # Target camera FPS
 
-### Hand Detection
-```python
-MAX_NUM_HANDS = 2                    # Maximum hands to track
-MIN_DETECTION_CONFIDENCE = 0.5       # Detection threshold
-MIN_TRACKING_CONFIDENCE = 0.5        # Tracking threshold
-HAND_POSITION_SMOOTHING_FACTOR = 0.3 # Smoothing (0-1)
-```
+# Hand Detection & Thresholds
+HAND_CONFIDENCE_THRESHOLD = 0.5       # MediaPipe confidence cutoff
+HAND_POSITION_SMOOTHING_FACTOR = 0.3 # Exponential moving average factor
+HAND_POSITION_DEADZONE = 0.0          # Movement deadzone
 
-### Fist Detection
-```python
-FINGER_CLOSED_RATIO = 1.0      # Finger curl threshold
-FIST_REQUIRED_FINGERS = 4      # Fingers needed for fist
-FIST_HOLD_DURATION = 0.8       # Hold time (seconds)
-```
+# Ball Physics
+BALL_INITIAL_SPEED = 5.0    # Initial velocity magnitude
+BALL_MAX_SPEED = 18.0       # Max speed cap
+BALL_MIN_SPEED = 3.0        # Min speed floor
 
-### Ball Physics
-```python
-BALL_INITIAL_SPEED = 5.0       # Starting speed
-BALL_MIN_SPEED = 3.0           # Minimum speed
-BALL_MAX_SPEED = 12.0          # Maximum speed
-BALL_RADIUS = 8                # Ball size
-```
-
-### Paddle Settings
-```python
-PADDLE_WIDTH = 10              # Paddle width
-PADDLE_HEIGHT = 80             # Paddle height
-PADDLE_SPEED = 8               # Movement speed
-```
-
-### AI Difficulty
-```python
-AI_DIFFICULTY = 0.85           # AI reaction chance (0-1)
-AI_SPEED = 6                   # AI paddle speed
-AI_ERROR_MARGIN = 15           # AI imperfection
+# Calibration & Countdown
+CALIBRATION_COUNTDOWN_SECONDS = 3     # Pre-match countdown duration
 ```
 
 ---
@@ -283,212 +195,50 @@ AI_ERROR_MARGIN = 15           # AI imperfection
 Hand-Gesture-Controlled-Ping-Pong-Game-main/
 │
 ├── 📁 src/                     # Source code directory
-│   ├── 📄 main.py              # Main application entry point
-│   ├── 📄 config.py            # All configuration constants
-│   ├── 📄 hand_detector.py     # Hand tracking & gesture recognition
-│   ├── 📄 game_engine.py       # Game logic & physics
-│   ├── 📄 game_objects.py      # Ball and Paddle classes
-│   └── 📄 ui_manager.py        # Tkinter GUI management
+│   ├── 📄 main.py              # Main app entry point & state orchestrator
+│   ├── 📄 config.py            # Configuration settings & constants
+│   ├── 📄 camera_thread.py     # Background worker thread for camera & MediaPipe
+│   ├── 📄 hand_detector.py     # MediaPipe Tasks API integration & landmark drawing
+│   ├── 📄 game_engine.py       # Game logic, physics, mode handling & AI
+│   ├── 📄 game_objects.py      # Ball and Paddle physics objects
+│   └── 📄 ui_manager.py        # CustomTkinter GUI & canvas rendering
 │
-├── 📁 assets/                  # Game assets
-│   └── 📄 demo.jpg             # Demonstration image
+├── 📁 assets/                  # Game assets & MediaPipe models
+│   ├── 📄 gesture_recognizer.task # MediaPipe gesture model
+│   └── 📄 demo.jpg             # Demonstration screenshot
 │
-├── 📄 .gitignore               # Git ignore file
-├── 📄 LICENSE                  # MIT License
-├── 📄 setup.py                 # Automatic setup script
-├── 📄 INSTALL.bat              # Windows installer
-├── 📄 requirements.txt         # Python dependencies
-└── 📄 README.md                # This file
+├── 📄 INSTALL.bat              # Windows one-click installer script
+├── 📄 setup.py                 # Automated setup & model downloader
+├── 📄 requirements.txt         # Dependencies (opencv, mediapipe, customtkinter, etc.)
+└── 📄 README.md                # Project documentation
 ```
 
-### Module Descriptions
+### Module Architecture
 
-| Module | Purpose |
-|--------|---------|
-| **src/main.py** | Main game loop, coordinates all modules |
-| **config.py** | Central configuration file for all settings |
-| **hand_detector.py** | MediaPipe integration, gesture recognition |
-| **game_engine.py** | Game logic, collision detection, scoring, AI |
-| **game_objects.py** | Ball and Paddle classes with physics |
-| **ui_manager.py** | Tkinter GUI, camera preview, status display |
-| **setup.py** | Automated environment setup and dependency installation |
-
----
-
-## 🔧 Technical Details
-
-### Technologies Used
-
-| Technology | Purpose | Version |
-|------------|---------|---------|
-| **Python** | Core language | 3.11/3.12 |
-| **OpenCV** | Computer vision & camera handling | 4.8.1 |
-| **MediaPipe** | Hand tracking & landmark detection | 0.10.14 |
-| **Tkinter** | GUI framework | Built-in |
-| **Pillow** | Image processing for GUI | 10.0.1 |
-| **NumPy** | Numerical computations | ≥1.26.0 |
-
-### Architecture
-
-```
-┌─────────────────────────────────────────┐
-│         Main Application                │
-│           (src/main.py)                 │
-└──────────────┬──────────────────────────┘
-               │
-       ┌───────┴───────┐
-       │               │
-┌──────▼─────┐  ┌─────▼──────┐
-│ UI Manager │  │Game Engine │
-│  (Tkinter) │  │  (Logic)   │
-└──────┬─────┘  └─────┬──────┘
-       │               │
-       │        ┌──────▼───────┐
-       │        │ Game Objects │
-       │        │ (Ball/Paddle)│
-       │        └──────────────┘
-       │
-┌──────▼──────────┐
-│  Hand Detector  │
-│   (MediaPipe)   │
-└─────────────────┘
-```
-
-### Performance Optimizations
-
-1. **Frame Skipping**: Processes hand detection every N frames
-2. **Exponential Smoothing**: Reduces jitter in hand positions
-3. **Deadzone Filtering**: Ignores tiny movements
-4. **Buffer Management**: Uses deques for efficient position history
-5. **CPU-Only Mode**: Optimized for systems without GPU
-6. **Reduced Camera Resolution**: Balances quality and performance
-
-### Hand Detection Pipeline
-
-```
-Camera Frame → RGB Conversion → MediaPipe Hands → Landmark Detection
-    ↓
-Position Extraction → Smoothing → Normalization → Paddle Update
-    ↓
-Gesture Recognition → Fist/Thumbs Detection → Game Actions
-```
+| Module | Responsibilities |
+|--------|------------------|
+| **`src/main.py`** | Main loop, state machine (`MENU`, `CALIBRATING`, `PLAYING`), countdown timer, input bindings |
+| **`src/camera_thread.py`** | Asynchronous daemon thread for OpenCV capture and MediaPipe processing |
+| **`src/hand_detector.py`** | MediaPipe Tasks API integration, gesture recognition, landmark drawing |
+| **`src/game_engine.py`** | Game state, ball movement, collision detection, scoring, AI behavior |
+| **`src/game_objects.py`** | Ball and Paddle entities with target position smoothing (`update_smooth`) |
+| **`src/ui_manager.py`** | CustomTkinter GUI layout, Main Menu rendering, Calibration overlay, side dashboard |
+| **`src/config.py`** | Central configuration for dimensions, thresholds, colors, and constants |
 
 ---
 
 ## 🐛 Troubleshooting
 
-### Common Issues
+#### 1. **Camera Not Opening**
+- Ensure no other application (Zoom, Teams, Skype) is using your webcam.
+- Check camera privacy permissions in system settings.
 
-#### 1. **Camera not opening**
-```
-❌ Error: Camera Error - Could not open camera
-```
-**Solutions:**
-- Ensure no other application is using the camera
-- Check camera permissions in system settings
-- Try different camera index in code (change `cv2.VideoCapture(0)` to `1`, `2`, etc.)
-- Restart your computer
+#### 2. **Jittery Paddle Movement**
+- We use position smoothing (`HAND_POSITION_SMOOTHING_FACTOR = 0.3`) and paddle interpolation (`update_smooth()`).
+- Ensure adequate room lighting so the webcam maintains a consistent exposure rate.
 
-#### 2. **Python version incompatible**
-```
-❌ Error: No compatible Python version found
-```
-**Solutions:**
-- Install Python 3.11 or 3.12 from [python.org](https://www.python.org/downloads/)
-- Make sure to check "Add Python to PATH" during installation
-- Restart terminal after installation
-
-#### 3. **Hand detection not working**
-**Solutions:**
-- Ensure good lighting conditions
-- Position yourself 2-3 feet from camera
-- Show your full hand to camera (palm facing camera)
-- Adjust `MIN_DETECTION_CONFIDENCE` in `config.py` (lower = easier detection)
-- Press **D** to enable debug mode and check detection values
-
-#### 4. **Fist detection not triggering**
-**Solutions:**
-- Make tight fists with ALL fingers curled
-- Hold gesture for at least 1 second
-- Use BOTH hands simultaneously
-- Adjust `FIST_HOLD_DURATION` in `config.py` (lower = faster activation)
-- Enable debug mode (D key) to see finger curl ratios
-
-#### 5. **Paddle movement too jittery**
-**Solutions:**
-- Increase `HAND_POSITION_SMOOTHING_FACTOR` in `config.py` (higher = smoother)
-- Increase `HAND_POSITION_BUFFER_SIZE` for more smoothing
-- Adjust `HAND_POSITION_DEADZONE` to ignore tiny movements
-
-#### 6. **Low FPS / Laggy performance**
-**Solutions:**
-- Increase `FRAME_SKIP` in `config.py` (process fewer frames)
-- Reduce `CAMERA_WIDTH` and `CAMERA_HEIGHT`
-- Set `MODEL_COMPLEXITY = 0` for fastest model
-- Close other resource-intensive applications
-- Reduce `MAX_NUM_HANDS` to `1` if playing solo
-
-#### 7. **Dependencies installation fails**
-**Solutions:**
-- Update pip: `python -m pip install --upgrade pip`
-- Install Visual C++ Build Tools (Windows): [Download here](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
-- Try installing packages individually:
-  ```bash
-  pip install opencv-python
-  pip install mediapipe
-  pip install pillow
-  pip install numpy
-  ```
-
-### Debug Mode
-
-Press **D** to enable debug mode for detailed logging:
-```
-🔍 DEBUG MODE ENABLED
-You will now see detailed fist detection data in console:
-• Finger extension ratios
-• Which fingers are detected as closed
-• Final fist detection result
-```
-
-### Performance Tips
-
-- **Lighting**: Use good, even lighting for better detection
-- **Background**: Plain background helps MediaPipe tracking
-- **Distance**: Stay 2-3 feet from camera
-- **Hand Position**: Keep hand fully visible in frame
-- **Camera Quality**: Better camera = better tracking
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Here's how you can help:
-
-### Ways to Contribute
-
-1. **Bug Reports**: Open an issue with details
-2. **Feature Requests**: Suggest new features or improvements
-3. **Code Contributions**: Submit pull requests
-4. **Documentation**: Improve README or code comments
-5. **Testing**: Test on different platforms and report results
-
-### Development Setup
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature-name`
-3. Make your changes
-4. Test thoroughly
-5. Commit: `git commit -m "Add feature-name"`
-6. Push: `git push origin feature-name`
-7. Create a Pull Request
-
-### Code Style
-
-- Follow PEP 8 guidelines
-- Add docstrings to functions
-- Comment complex logic
-- Keep functions focused and modular
+#### 3. **Hand Lines Flickering**
+- Verify that `FRAME_SKIP = 1` and `HAND_LANDMARK_DRAW_FREQ = 1` in `src/config.py`.
 
 ---
 
@@ -500,39 +250,6 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 ## 🙏 Acknowledgments
 
-- **MediaPipe** by Google for hand tracking technology
-- **OpenCV** for computer vision capabilities
-- **Python** community for excellent libraries
-- All contributors and testers
-
----
-
-## 📞 Support
-
-Having issues? Need help?
-
-- 📖 Check the [Troubleshooting](#-troubleshooting) section
-- 🐛 Open an [Issue](https://github.com/saksham-dev07/Hand-Gesture-Controlled-Ping-Pong-Game/issues)
-- 💬 Join discussions in the [Discussions](https://github.com/saksham-dev07/Hand-Gesture-Controlled-Ping-Pong-Game/discussions) tab
-- 📧 Contact: sakmmm07@gmail.com
-
----
-
-## 🎓 Learning Resources
-
-Want to learn more about the technologies used?
-
-- **MediaPipe Hands**: [Official Documentation](https://google.github.io/mediapipe/solutions/hands.html)
-- **OpenCV Python**: [Tutorials](https://docs.opencv.org/4.x/d6/d00/tutorial_py_root.html)
-- **Tkinter GUI**: [Python Docs](https://docs.python.org/3/library/tkinter.html)
-- **Computer Vision**: [PyImageSearch](https://pyimagesearch.com/)
-
----
-
-<div align="center">
-
-**Made with ❤️ and Python**
-
-[⬆ Back to Top](#-hand-gesture-controlled-ping-pong-game)
-
-</div>
+- **MediaPipe** by Google for real-time vision & gesture tracking APIs.
+- **OpenCV** for camera feed processing.
+- **CustomTkinter** for modern dark mode UI widgets.

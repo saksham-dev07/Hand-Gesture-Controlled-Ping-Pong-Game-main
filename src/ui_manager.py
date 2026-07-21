@@ -1,26 +1,20 @@
 """
 UI Manager Module
-Handles all Tkinter GUI components and camera preview
-OPTIMIZED: CPU-only version
+Handles all CustomTkinter GUI components and camera preview
+OPTIMIZED: Side-by-Side Dashboard Layout
 """
 
 import tkinter as tk
-from tkinter import messagebox
+import customtkinter as ctk
 from PIL import Image, ImageTk
 import cv2
 from config import *
-
+import tkinter.messagebox as messagebox
 
 class UIManager:
-    """Manages the game's user interface"""
+    """Manages the game's user interface using CustomTkinter"""
     
     def __init__(self, root):
-        """
-        Initialize the UI Manager
-        
-        Args:
-            root: Tkinter root window
-        """
         self.root = root
         self.is_fullscreen = False
         
@@ -36,412 +30,382 @@ class UIManager:
         self.fps_display = None
         self.score_display = None
         
-        # Setup UI
         self.setup_ui()
     
     def setup_ui(self):
-        """Setup the Tkinter UI"""
         self.root.title(WINDOW_TITLE)
-        self.root.configure(bg=BG_PRIMARY)
         
         # Get screen dimensions
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
         
-        # Allow resizing and set initial size
         self.root.resizable(True, True)
         self.root.geometry(f"{WINDOW_WIDTH}x{WINDOW_HEIGHT}")
         
-        # Center window
         self.root.update_idletasks()
         x = (screen_width // 2) - (WINDOW_WIDTH // 2)
         y = (screen_height // 2) - (WINDOW_HEIGHT // 2)
         self.root.geometry(f"{WINDOW_WIDTH}x{WINDOW_HEIGHT}+{x}+{y}")
         
-        # Create main canvas with scrollbar
-        self.main_canvas = tk.Canvas(self.root, bg=BG_PRIMARY, highlightthickness=0)
-        self.main_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        # Main layout container
+        self.main_container = ctk.CTkFrame(self.root, fg_color="transparent")
+        self.main_container.pack(fill="both", expand=True, padx=20, pady=20)
         
-        scrollbar = tk.Scrollbar(self.root, orient=tk.VERTICAL, command=self.main_canvas.yview)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        self.main_canvas.configure(yscrollcommand=scrollbar.set)
+        # ---------------------------------------------------------
+        # LEFT COLUMN (Game Area)
+        # ---------------------------------------------------------
+        self.game_area = ctk.CTkFrame(self.main_container, fg_color="transparent")
+        self.game_area.pack(side="left", fill="both", expand=True, padx=(0, 10))
         
-        # Create frame inside canvas
-        main_container = tk.Frame(self.main_canvas, bg=BG_PRIMARY, padx=25, pady=25)
-        self.canvas_window = self.main_canvas.create_window((0, 0), window=main_container, anchor='nw')
+        self._create_header(self.game_area)
+        self._create_game_canvas(self.game_area)
+        self._create_instructions(self.game_area)
         
-        # Configure scroll region
-        def configure_scroll_region(event=None):
-            self.main_canvas.configure(scrollregion=self.main_canvas.bbox('all'))
+        # ---------------------------------------------------------
+        # RIGHT COLUMN (Sidebar Dashboard)
+        # ---------------------------------------------------------
+        self.sidebar = ctk.CTkFrame(self.main_container, width=380)
+        self.sidebar.pack(side="right", fill="y", padx=(10, 0))
+        self.sidebar.pack_propagate(False)  # Fix width
         
-        main_container.bind('<Configure>', configure_scroll_region)
-        
-        # Mousewheel scrolling
-        def on_mousewheel(event):
-            self.main_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
-        self.root.bind_all("<MouseWheel>", on_mousewheel)
-        
-        # Adjust canvas window width
-        def on_canvas_configure(event):
-            self.main_canvas.itemconfig(self.canvas_window, width=event.width)
-        self.main_canvas.bind('<Configure>', on_canvas_configure)
-        
-        # Build UI sections
-        self._create_header(main_container)
-        self._create_status_bar(main_container)
-        self._create_game_canvas(main_container)
-        self._create_instructions(main_container)
-        self._create_bottom_section(main_container)
+        self._create_sidebar_content(self.sidebar)
     
     def _create_header(self, parent):
-        """Create header section"""
-        header_frame = tk.Frame(parent, bg=BG_SECONDARY, relief=tk.FLAT, bd=0)
-        header_frame.pack(fill=tk.X, pady=(0, 20))
+        header_frame = ctk.CTkFrame(parent, fg_color="transparent")
+        header_frame.pack(fill="x", pady=(0, 20))
         
-        title_container = tk.Frame(header_frame, bg=BG_SECONDARY, pady=15)
-        title_container.pack()
+        title = ctk.CTkLabel(header_frame, text="🎮 HAND GESTURE PONG", font=ctk.CTkFont(size=28, weight="bold"))
+        title.pack(anchor="w")
         
-        title = tk.Label(title_container, text="🎮 HAND GESTURE PONG",
-                        font=FONT_TITLE, fg=TEXT_PRIMARY, bg=BG_SECONDARY)
-        title.pack()
+        subtitle = ctk.CTkLabel(header_frame, text="AI-Powered Hand Tracking Game", font=ctk.CTkFont(size=14), text_color="gray")
+        subtitle.pack(anchor="w", pady=(2, 10))
         
-        subtitle = tk.Label(title_container, text="AI-Powered Hand Tracking Game",
-                           font=FONT_SUBTITLE, fg=TEXT_SECONDARY, bg=BG_SECONDARY)
-        subtitle.pack(pady=(5, 0))
+        badges_frame = ctk.CTkFrame(header_frame, fg_color="transparent")
+        badges_frame.pack(anchor="w")
         
-        # Badges
-        badges_frame = tk.Frame(header_frame, bg=BG_SECONDARY, pady=5)
-        badges_frame.pack()
+        cpu_badge = ctk.CTkLabel(badges_frame, text="💻 OPTIMIZED CPU MODE", font=ctk.CTkFont(size=12, weight="bold"),
+                                 fg_color="#2b2b2b", corner_radius=6, padx=10, pady=4)
+        cpu_badge.pack(side="left", padx=(0, 10))
         
-        # CPU Mode badge (removed GPU check)
-        cpu_badge = tk.Label(badges_frame, text="💻 OPTIMIZED CPU MODE", font=FONT_BADGE,
-                            fg=TEXT_SECONDARY, bg=BG_TERTIARY, padx=12, pady=4, relief=tk.FLAT)
-        cpu_badge.pack(side=tk.LEFT, padx=5)
-        
-        fullscreen_hint = tk.Label(badges_frame, text="🖥️ Press F11 for Fullscreen",
-                                   font=FONT_BADGE_SMALL, fg=TEXT_DARK, bg=BG_TERTIARY,
-                                   padx=12, pady=4, relief=tk.FLAT)
-        fullscreen_hint.pack(side=tk.LEFT, padx=5)
-    
-    def _create_status_bar(self, parent):
-        """Create status bar"""
-        status_frame = tk.Frame(parent, bg=BG_TERTIARY, relief=tk.FLAT, bd=0)
-        status_frame.pack(fill=tk.X, pady=(0, 20))
-        
-        # Left section
-        left_status = tk.Frame(status_frame, bg=BG_TERTIARY, padx=15, pady=12)
-        left_status.pack(side=tk.LEFT, fill=tk.X, expand=True)
-        
-        cam_frame = tk.Frame(left_status, bg=BG_TERTIARY)
-        cam_frame.pack(side=tk.LEFT)
-        
-        self.camera_status = tk.Label(cam_frame, text="📹 Camera: OFF",
-                                      font=FONT_NORMAL_BOLD, fg=COLOR_DANGER, bg=BG_TERTIARY)
-        self.camera_status.pack(side=tk.LEFT)
-        
-        hands_frame = tk.Frame(left_status, bg=BG_TERTIARY)
-        hands_frame.pack(side=tk.LEFT, padx=(20, 0))
-        
-        self.left_hand_status = tk.Label(hands_frame, text="👈 Left: ✗",
-                                         font=FONT_NORMAL_BOLD, fg=TEXT_DARK, bg=BG_TERTIARY)
-        self.left_hand_status.pack(side=tk.LEFT, padx=5)
-        
-        self.right_hand_status = tk.Label(hands_frame, text="👉 Right: ✗",
-                                          font=FONT_NORMAL_BOLD, fg=TEXT_DARK, bg=BG_TERTIARY)
-        self.right_hand_status.pack(side=tk.LEFT, padx=5)
-        
-        # Right section
-        right_status = tk.Frame(status_frame, bg=BG_TERTIARY, padx=15, pady=12)
-        right_status.pack(side=tk.RIGHT)
-        
-        self.fps_display = tk.Label(right_status, text="⚡ 0 FPS",
-                                    font=FONT_NORMAL_BOLD, fg=COLOR_WARNING, bg=BG_TERTIARY)
-        self.fps_display.pack(side=tk.LEFT, padx=(0, 15))
-        
-        self.score_display = tk.Label(right_status, text="🏆 0 - 0",
-                                      font=FONT_SCORE, fg=COLOR_SUCCESS, bg=BG_TERTIARY)
-        self.score_display.pack(side=tk.LEFT)
+        fullscreen_hint = ctk.CTkLabel(badges_frame, text="🖥️ Press F11 for Fullscreen", font=ctk.CTkFont(size=12),
+                                       fg_color="#2b2b2b", corner_radius=6, padx=10, pady=4)
+        fullscreen_hint.pack(side="left")
     
     def _create_game_canvas(self, parent):
-        """Create game canvas"""
-        canvas_container = tk.Frame(parent, bg=BG_SECONDARY, relief=tk.FLAT, bd=0)
-        canvas_container.pack(pady=(0, 20))
+        canvas_container = ctk.CTkFrame(parent, corner_radius=10, fg_color="transparent")
+        canvas_container.pack(fill="both", expand=True, pady=(0, 20))
         
-        canvas_frame = tk.Frame(canvas_container, bg=BG_DARK, padx=8, pady=8)
-        canvas_frame.pack()
-        
-        self.canvas = tk.Canvas(canvas_frame, width=CANVAS_WIDTH, height=CANVAS_HEIGHT,
-                               bg=BG_CANVAS, highlightthickness=3,
-                               highlightbackground=COLOR_INFO_DARK,
-                               highlightcolor=COLOR_INFO)
-        self.canvas.pack()
+        # We must use standard tk.Canvas for fast shape drawing inside the CTkFrame
+        self.canvas = tk.Canvas(canvas_container, width=CANVAS_WIDTH, height=CANVAS_HEIGHT,
+                               bg=BG_CANVAS, highlightthickness=0)
+        self.canvas.pack(padx=20, pady=20, expand=True)
     
     def _create_instructions(self, parent):
-        """Create instructions panel"""
-        instructions_frame = tk.Frame(parent, bg=BG_TERTIARY, relief=tk.FLAT, bd=0)
-        instructions_frame.pack(fill=tk.X, pady=(0, 20))
+        instructions_frame = ctk.CTkFrame(parent, fg_color="#1a1a1a")
+        instructions_frame.pack(fill="x")
         
-        instructions_inner = tk.Frame(instructions_frame, bg=BG_SECONDARY, padx=20, pady=12)
-        instructions_inner.pack(fill=tk.X)
+        instructions = ctk.CTkLabel(instructions_frame,
+                               text="🎯 Move your hands UP/DOWN to control paddles.   👈 Left hand → Left paddle   👉 Right hand → Right paddle",
+                               font=ctk.CTkFont(size=13))
+        instructions.pack(pady=12)
         
-        instructions = tk.Label(instructions_inner,
-                               text="🎯 CONTROLS: Move your hands UP/DOWN to control paddles  |  📍 Left hand → Left paddle  |  Right hand → Right paddle",
-                               font=FONT_NORMAL, fg=TEXT_LIGHT, bg=BG_SECONDARY,
-                               wraplength=800, justify=tk.CENTER)
-        instructions.pack()
-    
-    def _create_bottom_section(self, parent):
-        """Create bottom section with camera and controls"""
-        bottom_frame = tk.Frame(parent, bg=BG_PRIMARY)
-        bottom_frame.pack(fill=tk.BOTH, expand=True)
+    def _create_sidebar_content(self, parent):
+        # Add a scrollable frame inside the sidebar in case the window is too short
+        scrollable_sidebar = ctk.CTkScrollableFrame(parent, fg_color="transparent")
+        scrollable_sidebar.pack(fill="both", expand=True, padx=10, pady=10)
         
-        # Camera section
-        camera_section = tk.Frame(bottom_frame, bg=BG_SECONDARY, relief=tk.FLAT, bd=0)
-        camera_section.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 15))
+        # SCORE & FPS STATUS
+        status_frame = ctk.CTkFrame(scrollable_sidebar, fg_color="#1a1a1a")
+        status_frame.pack(fill="x", pady=(0, 15))
         
-        camera_header = tk.Frame(camera_section, bg=BG_SECONDARY, padx=20, pady=12)
-        camera_header.pack(fill=tk.X)
+        score_label = ctk.CTkLabel(status_frame, text="SCORE", font=ctk.CTkFont(size=12, weight="bold"), text_color="gray")
+        score_label.pack(pady=(10, 0))
+        self.score_display = ctk.CTkLabel(status_frame, text="0 - 0", text_color="#10b981", font=ctk.CTkFont(size=36, weight="bold"))
+        self.score_display.pack(pady=(0, 10))
         
-        camera_title = tk.Label(camera_header, text="📹 LIVE CAMERA FEED",
-                               font=FONT_HEADER, fg=TEXT_PRIMARY, bg=BG_SECONDARY)
-        camera_title.pack(side=tk.LEFT)
+        metrics_frame = ctk.CTkFrame(status_frame, fg_color="transparent")
+        metrics_frame.pack(fill="x", padx=15, pady=(0, 10))
+        self.fps_display = ctk.CTkLabel(metrics_frame, text="⚡ 0 FPS", text_color="#f59e0b", font=ctk.CTkFont(weight="bold"))
+        self.fps_display.pack(side="left")
         
-        self.camera_indicator = tk.Label(camera_header, text="● OFF",
-                                         font=FONT_NORMAL_BOLD, fg=COLOR_DANGER, bg=BG_SECONDARY)
-        self.camera_indicator.pack(side=tk.RIGHT)
+        self.camera_status = ctk.CTkLabel(metrics_frame, text="📹 OFF", text_color="#ef4444", font=ctk.CTkFont(weight="bold"))
+        self.camera_status.pack(side="right")
         
-        camera_preview_frame = tk.Frame(camera_section, bg=BG_DARK, padx=15, pady=15)
-        camera_preview_frame.pack(fill=tk.BOTH, expand=True)
+        # CAMERA PREVIEW
+        camera_section = ctk.CTkFrame(scrollable_sidebar, fg_color="#1a1a1a")
+        camera_section.pack(fill="x", pady=(0, 15))
         
-        self.camera_preview = tk.Label(camera_preview_frame,
-                                       text="📷 Camera Offline\n\n🎮 Click START GAME to activate\n\n✋ Position both hands in view\n👀 Hands will be detected automatically\n🟢 Green paddles = Hand control active",
-                                       width=45, height=16, bg=BG_CANVAS, fg=TEXT_DARK,
-                                       font=FONT_NORMAL, justify=tk.CENTER, relief=tk.FLAT,
-                                       borderwidth=2, highlightthickness=2,
-                                       highlightbackground=BG_TERTIARY,
-                                       highlightcolor=COLOR_INFO_DARK)
-        self.camera_preview.pack(fill=tk.BOTH, expand=True)
+        cam_header = ctk.CTkFrame(camera_section, fg_color="transparent")
+        cam_header.pack(fill="x", padx=10, pady=5)
+        ctk.CTkLabel(cam_header, text="LIVE CAMERA", font=ctk.CTkFont(weight="bold")).pack(side="left")
+        self.camera_indicator = ctk.CTkLabel(cam_header, text="● OFF", text_color="#ef4444", font=ctk.CTkFont(weight="bold"))
+        self.camera_indicator.pack(side="right")
         
-        tips_frame = tk.Frame(camera_section, bg=BG_SECONDARY, padx=15, pady=10)
-        tips_frame.pack(fill=tk.X)
+        self.camera_preview = ctk.CTkLabel(camera_section, text="📷 Offline\nClick START GAME",
+                                           width=CAMERA_PREVIEW_WIDTH, height=CAMERA_PREVIEW_HEIGHT,
+                                           fg_color="#0f0f0f", corner_radius=6)
+        self.camera_preview.pack(padx=10, pady=(0, 10))
         
-        tips_label = tk.Label(tips_frame,
-                             text="💡 TIP: Good lighting improves hand detection accuracy",
-                             font=FONT_BADGE_SMALL, fg=TEXT_SECONDARY, bg=BG_SECONDARY,
-                             justify=tk.LEFT)
-        tips_label.pack(anchor=tk.W)
+        hand_status_frame = ctk.CTkFrame(camera_section, fg_color="transparent")
+        hand_status_frame.pack(fill="x", padx=10, pady=(0, 10))
+        self.left_hand_status = ctk.CTkLabel(hand_status_frame, text="👈 Left: ✗", text_color="gray")
+        self.left_hand_status.pack(side="left")
+        self.right_hand_status = ctk.CTkLabel(hand_status_frame, text="👉 Right: ✗", text_color="gray")
+        self.right_hand_status.pack(side="right")
         
-        # Controls section
-        self._create_controls_section(bottom_frame)
-    
-    def _create_controls_section(self, parent):
-        """Create controls section"""
-        controls_section = tk.Frame(parent, bg=BG_SECONDARY, relief=tk.FLAT, bd=0)
-        controls_section.pack(side=tk.RIGHT, fill=tk.Y)
+        # MODE SELECTOR CARD
+        mode_card = ctk.CTkFrame(scrollable_sidebar, fg_color="#1a1a1a")
+        mode_card.pack(fill="x", pady=(0, 15))
         
-        controls_inner = tk.Frame(controls_section, bg=BG_SECONDARY, padx=20, pady=15)
-        controls_inner.pack(fill=tk.BOTH, expand=True)
+        ctk.CTkLabel(mode_card, text="🎯 GAME MODE", font=ctk.CTkFont(weight="bold")).pack(anchor="w", padx=10, pady=(10, 5))
         
-        # START/STOP button
-        self.start_stop_button = tk.Button(controls_inner, text="▶️ START GAME",
-                                          font=FONT_BUTTON_LARGE, bg=COLOR_SUCCESS,
-                                          fg='white', padx=30, pady=20, relief=tk.FLAT, bd=0,
-                                          cursor='hand2', activebackground=COLOR_SUCCESS_DARK,
-                                          activeforeground='white')
-        self.start_stop_button.pack(fill=tk.X, pady=(0, 10))
+        self.mode_selector = ctk.CTkSegmentedButton(mode_card, values=["🤖 1-Player", "👥 2-Player"],
+                                                    font=ctk.CTkFont(size=12, weight="bold"),
+                                                    selected_color="#10b981", selected_hover_color="#059669")
+        self.mode_selector.set("🤖 1-Player")
+        self.mode_selector.pack(fill="x", padx=10, pady=(0, 10))
+
+        # GESTURES CARD
+        modes_card = ctk.CTkFrame(scrollable_sidebar, fg_color="#1a1a1a")
+        modes_card.pack(fill="x", pady=(0, 15))
         
-        # PAUSE button
-        self.pause_button = tk.Button(controls_inner, text="⏸️ PAUSE",
-                                     font=FONT_BUTTON_MEDIUM, bg=COLOR_WARNING,
-                                     fg='white', padx=20, pady=10, relief=tk.FLAT, bd=0,
-                                     cursor='hand2', state=tk.DISABLED,
-                                     activebackground=COLOR_WARNING_DARK,
-                                     activeforeground='white')
-        self.pause_button.pack(fill=tk.X, pady=(0, 15))
+        ctk.CTkLabel(modes_card, text="🎮 GESTURES", font=ctk.CTkFont(weight="bold")).pack(anchor="w", padx=10, pady=(10, 5))
         
-        # Game modes card
-        modes_card = tk.Frame(controls_inner, bg=BG_DARK, relief=tk.FLAT, bd=0)
-        modes_card.pack(fill=tk.X, pady=(0, 10))
+        gestures_text = "✊ Closed Fist: Pause\n👐 Open Palm: Resume\n👍 Thumbs Up: Speed Up\n👎 Thumbs Down: Slow Down"
+        ctk.CTkLabel(modes_card, text=gestures_text, font=ctk.CTkFont(size=13), text_color="#cbd5e1", justify="left").pack(anchor="w", padx=10, pady=(0, 10))
         
-        modes_inner = tk.Frame(modes_card, bg=BG_DARK, padx=15, pady=12)
-        modes_inner.pack(fill=tk.X)
+        # CONTROLS
+        self.start_stop_button = ctk.CTkButton(scrollable_sidebar, text="▶️ START MATCH",
+                                               font=ctk.CTkFont(size=16, weight="bold"),
+                                               fg_color="#10b981", hover_color="#059669", height=50)
+        self.start_stop_button.pack(fill="x", pady=(0, 10))
         
-        mode_title = tk.Label(modes_inner, text="🎮 GAME MODES", font=FONT_NORMAL_BOLD,
-                             fg=TEXT_PRIMARY, bg=BG_DARK)
-        mode_title.pack(anchor=tk.W, pady=(0, 8))
+        self.pause_button = ctk.CTkButton(scrollable_sidebar, text="⏸️ PAUSE",
+                                          font=ctk.CTkFont(size=14, weight="bold"),
+                                          fg_color="#f59e0b", hover_color="#d97706",
+                                          state="disabled", height=40)
+        self.pause_button.pack(fill="x", pady=(0, 10))
         
-        mode_info = tk.Label(modes_inner,
-                            text="👤 1 Hand: You vs AI\n👥 2 Hands: Full Manual Control\n🤖 0 Hands: AI Demo Mode",
-                            font=FONT_BADGE_SMALL, fg=TEXT_SECONDARY, bg=BG_DARK,
-                            justify=tk.LEFT)
-        mode_info.pack(anchor=tk.W)
-        
-        # QUIT button
-        self.quit_button = tk.Button(controls_inner, text="✖️ QUIT",
-                                     font=FONT_BUTTON_SMALL, bg=COLOR_DANGER_DARK,
-                                     fg='white', padx=20, pady=10, relief=tk.FLAT, bd=0,
-                                     cursor='hand2', activebackground=COLOR_DANGER_DARKER,
-                                     activeforeground='white')
-        self.quit_button.pack(fill=tk.X, pady=(5, 0))
+        self.quit_button = ctk.CTkButton(scrollable_sidebar, text="✖️ QUIT",
+                                         fg_color="#ef4444", hover_color="#dc2626", height=40)
+        self.quit_button.pack(fill="x", pady=(10, 0))
     
     def update_camera_status(self, is_active):
-        """Update camera status indicators"""
         if is_active:
-            self.camera_status.config(text="📹 Camera: ACTIVE", fg=COLOR_SUCCESS)
-            self.camera_indicator.config(text="● LIVE", fg=COLOR_SUCCESS)
+            self.camera_status.configure(text="📹 ACTIVE", text_color="#10b981")
+            self.camera_indicator.configure(text="● LIVE", text_color="#10b981")
         else:
-            self.camera_status.config(text="📹 Camera: OFF", fg=COLOR_DANGER)
-            self.camera_indicator.config(text="● OFF", fg=COLOR_DANGER)
+            self.camera_status.configure(text="📹 OFF", text_color="#ef4444")
+            self.camera_indicator.configure(text="● OFF", text_color="#ef4444")
     
     def update_hand_status(self, left_detected, right_detected):
-        """Update hand detection status"""
         if left_detected:
-            self.left_hand_status.config(text="👈 Left: ✓", fg=COLOR_SUCCESS)
+            self.left_hand_status.configure(text="👈 Left: ✓", text_color="#10b981")
         else:
-            self.left_hand_status.config(text="👈 Left: ✗", fg=TEXT_DARK)
+            self.left_hand_status.configure(text="👈 Left: ✗", text_color="gray")
         
         if right_detected:
-            self.right_hand_status.config(text="👉 Right: ✓", fg=COLOR_SUCCESS)
+            self.right_hand_status.configure(text="👉 Right: ✓", text_color="#10b981")
         else:
-            self.right_hand_status.config(text="👉 Right: ✗", fg=TEXT_DARK)
+            self.right_hand_status.configure(text="👉 Right: ✗", text_color="gray")
     
     def update_score(self, score):
-        """Update score display"""
-        self.score_display.config(text=f"🏆 {score['player1']} - {score['player2']}")
+        self.score_display.configure(text=f"{score['player1']} - {score['player2']}")
     
     def update_fps(self, fps):
-        """Update FPS display with color coding"""
         fps_int = int(fps)
-        fps_color = COLOR_SUCCESS if fps_int >= 50 else COLOR_WARNING if fps_int >= 30 else COLOR_DANGER
-        self.fps_display.config(text=f"⚡ {fps_int} FPS", fg=fps_color)
+        fps_color = "#10b981" if fps_int >= 50 else "#f59e0b" if fps_int >= 30 else "#ef4444"
+        self.fps_display.configure(text=f"⚡ {fps_int} FPS", text_color=fps_color)
     
     def update_start_stop_button(self, is_running):
-        """Update start/stop button state"""
         if is_running:
-            self.start_stop_button.config(text="⏹️ STOP GAME", bg=COLOR_DANGER_DARK,
-                                         activebackground=COLOR_DANGER_DARKER)
-            self.pause_button.config(state=tk.NORMAL)
+            self.start_stop_button.configure(text="⏹️ STOP GAME", fg_color="#ef4444", hover_color="#dc2626")
+            self.pause_button.configure(state="normal")
         else:
-            self.start_stop_button.config(text="▶️ START GAME", bg=COLOR_SUCCESS,
-                                         activebackground=COLOR_SUCCESS_DARK)
-            self.pause_button.config(state=tk.DISABLED)
+            self.start_stop_button.configure(text="▶️ START GAME", fg_color="#10b981", hover_color="#059669")
+            self.pause_button.configure(state="disabled")
     
     def update_pause_button(self, is_paused):
-        """Update pause button state"""
         if is_paused:
-            self.pause_button.config(text="▶️ RESUME", bg=COLOR_SUCCESS)
+            self.pause_button.configure(text="▶️ RESUME", fg_color="#10b981", hover_color="#059669")
         else:
-            self.pause_button.config(text="⏸️ PAUSE", bg=COLOR_WARNING)
+            self.pause_button.configure(text="⏸️ PAUSE", fg_color="#f59e0b", hover_color="#d97706")
     
     def update_camera_preview(self, frame, paused_overlay=False):
-        """Update camera preview with frame (CPU-only)"""
         try:
-            # Resize frame for preview (CPU only)
-            preview_frame = cv2.resize(frame, (CAMERA_PREVIEW_WIDTH, CAMERA_PREVIEW_HEIGHT),
-                                     interpolation=cv2.INTER_LINEAR)
-            
-            # Add paused overlay if needed
+            preview_frame = cv2.resize(frame, (CAMERA_PREVIEW_WIDTH, CAMERA_PREVIEW_HEIGHT), interpolation=cv2.INTER_LINEAR)
             if paused_overlay:
                 h, w, _ = preview_frame.shape
                 text = "GAME PAUSED"
-                text_size = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 1.0, 3)[0]
+                text_size = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.8, 2)[0]
                 text_x = (w - text_size[0]) // 2
-                text_y = h - 40
-                
-                cv2.rectangle(preview_frame, 
-                            (text_x - 15, text_y - text_size[1] - 10),
-                            (text_x + text_size[0] + 15, text_y + 10),
-                            (10, 14, 39), -1)
-                cv2.putText(preview_frame, text, (text_x, text_y), 
-                           cv2.FONT_HERSHEY_SIMPLEX, 1.0, (96, 165, 250), 3)
+                text_y = h - 30
+                cv2.rectangle(preview_frame, (text_x - 10, text_y - text_size[1] - 8), (text_x + text_size[0] + 10, text_y + 8), (10, 14, 39), -1)
+                cv2.putText(preview_frame, text, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (250, 165, 96), 2)
             
             preview_frame = cv2.cvtColor(preview_frame, cv2.COLOR_BGR2RGB)
-            
-            # Convert to PhotoImage
             img = Image.fromarray(preview_frame)
-            photo = ImageTk.PhotoImage(img)
-            
-            self.camera_preview.config(image=photo, text='')
-            self.camera_preview.image = photo  # Keep reference
-            
+            photo = ctk.CTkImage(light_image=img, dark_image=img, size=(CAMERA_PREVIEW_WIDTH, CAMERA_PREVIEW_HEIGHT))
+            self.camera_preview.configure(image=photo, text="")
         except Exception as e:
             print(f"📹 Camera preview error: {e}")
     
     def clear_camera_preview(self):
-        """Clear camera preview and show offline message"""
-        self.camera_preview.config(
-            text="📷 Camera Offline\n\n🎮 Click START GAME to activate\n\n✋ Position both hands in view\n👀 Hands will be detected automatically\n🟢 Green paddles = Hand control active",
-            image='', fg=TEXT_DARK)
+        self.camera_preview.configure(image="", text="📷 Offline\nClick START GAME")
     
     def draw_game(self, game_state):
-        """Draw game state on canvas"""
         self.canvas.delete("all")
-        
-        # Draw pause overlay if paused
         if game_state['paused']:
-            self.canvas.create_rectangle(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT,
-                                        fill=BG_CANVAS, stipple='gray50', outline='')
-            self.canvas.create_text(CANVAS_WIDTH // 2, CANVAS_HEIGHT // 2,
-                                   text="⏸️ PAUSED", font=FONT_PAUSE_LARGE, fill=TEXT_PRIMARY)
-            self.canvas.create_text(CANVAS_WIDTH // 2, CANVAS_HEIGHT // 2 + 60,
-                                   text="Press RESUME to continue", font=FONT_PAUSE_SMALL,
-                                   fill=TEXT_SECONDARY)
+            self.canvas.create_rectangle(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT, fill=BG_CANVAS, stipple='gray50', outline='')
+            self.canvas.create_text(CANVAS_WIDTH // 2, CANVAS_HEIGHT // 2, text="⏸️ PAUSED", font=FONT_PAUSE_LARGE, fill=TEXT_PRIMARY)
+            self.canvas.create_text(CANVAS_WIDTH // 2, CANVAS_HEIGHT // 2 + 60, text="Press RESUME to continue", font=FONT_PAUSE_SMALL, fill=TEXT_SECONDARY)
             return
         
-        # Center line
-        for i in range(0, CANVAS_HEIGHT, 20):
-            self.canvas.create_rectangle(CANVAS_WIDTH//2 - 2, i, CANVAS_WIDTH//2 + 2, i + 10,
-                                        fill=COLOR_CENTER_LINE, outline='')
+        # Draw pitch boundary
+        self.canvas.create_rectangle(2, 2, CANVAS_WIDTH-2, CANVAS_HEIGHT-2, outline=COLOR_CENTER_LINE, width=4)
         
-        # Left paddle
+        for i in range(0, CANVAS_HEIGHT, 20):
+            self.canvas.create_rectangle(CANVAS_WIDTH//2 - 2, i, CANVAS_WIDTH//2 + 2, i + 10, fill=COLOR_CENTER_LINE, outline='')
+        
         paddle1 = game_state['paddle1']
         left_color = COLOR_PADDLE_ACTIVE if paddle1['hand_controlled'] else COLOR_PADDLE_INACTIVE
         left_outline = COLOR_PADDLE_OUTLINE_ACTIVE if paddle1['hand_controlled'] else COLOR_PADDLE_OUTLINE_INACTIVE
-        self.canvas.create_rectangle(paddle1['x'], paddle1['y'],
-                                     paddle1['x'] + paddle1['width'],
-                                     paddle1['y'] + paddle1['height'],
-                                     fill=left_color, outline=left_outline, width=2)
+        self.canvas.create_rectangle(paddle1['x'], paddle1['y'], paddle1['x'] + paddle1['width'], paddle1['y'] + paddle1['height'], fill=left_color, outline=left_outline, width=2)
         
-        # Right paddle
         paddle2 = game_state['paddle2']
         right_color = COLOR_PADDLE_ACTIVE if paddle2['hand_controlled'] else COLOR_PADDLE_INACTIVE
         right_outline = COLOR_PADDLE_OUTLINE_ACTIVE if paddle2['hand_controlled'] else COLOR_PADDLE_OUTLINE_INACTIVE
-        self.canvas.create_rectangle(paddle2['x'], paddle2['y'],
-                                     paddle2['x'] + paddle2['width'],
-                                     paddle2['y'] + paddle2['height'],
-                                     fill=right_color, outline=right_outline, width=2)
+        self.canvas.create_rectangle(paddle2['x'], paddle2['y'], paddle2['x'] + paddle2['width'], paddle2['y'] + paddle2['height'], fill=right_color, outline=right_outline, width=2)
         
-        # Ball
         ball = game_state['ball']
         ball_active = paddle1['hand_controlled'] or paddle2['hand_controlled']
         ball_color = COLOR_BALL_ACTIVE if ball_active else COLOR_BALL_INACTIVE
         ball_outline = COLOR_BALL_OUTLINE_ACTIVE if ball_active else COLOR_BALL_OUTLINE_INACTIVE
+        self.canvas.create_oval(ball['x'] - ball['radius'], ball['y'] - ball['radius'], ball['x'] + ball['radius'], ball['y'] + ball['radius'], fill=ball_color, outline=ball_outline, width=2)
+    
+    def draw_main_menu(self, selected_mode=MODE_1PLAYER):
+        """Draw sleek Main Menu view on the game canvas"""
+        self.canvas.delete("all")
         
-        self.canvas.create_oval(ball['x'] - ball['radius'], ball['y'] - ball['radius'],
-                               ball['x'] + ball['radius'], ball['y'] + ball['radius'],
-                               fill=ball_color, outline=ball_outline, width=2)
+        # Draw background and pitch outlines
+        self.canvas.create_rectangle(2, 2, CANVAS_WIDTH-2, CANVAS_HEIGHT-2, outline=COLOR_CENTER_LINE, width=4)
+        for i in range(0, CANVAS_HEIGHT, 20):
+            self.canvas.create_rectangle(CANVAS_WIDTH//2 - 2, i, CANVAS_WIDTH//2 + 2, i + 10, fill=COLOR_CENTER_LINE, outline='')
+            
+        # Title
+        self.canvas.create_text(CANVAS_WIDTH // 2, 80, text="🏓 HAND GESTURE PONG", font=(FONT_FAMILY, 32, "bold"), fill=COLOR_INFO)
+        self.canvas.create_text(CANVAS_WIDTH // 2, 120, text="Select Game Mode & Click START MATCH to Play", font=(FONT_FAMILY, 14), fill=TEXT_SECONDARY)
+        
+        # 1-Player Card Box
+        is_1p = (selected_mode == MODE_1PLAYER)
+        box1_bg = "#1e293b" if is_1p else "#0f172a"
+        box1_outline = "#10b981" if is_1p else "#334155"
+        self.canvas.create_rectangle(80, 160, 330, 360, fill=box1_bg, outline=box1_outline, width=3 if is_1p else 1)
+        self.canvas.create_text(205, 195, text="🤖 1-PLAYER MODE", font=(FONT_FAMILY, 16, "bold"), fill="#10b981" if is_1p else TEXT_LIGHT)
+        self.canvas.create_text(205, 230, text="• You vs Smart AI", font=(FONT_FAMILY, 12), fill=TEXT_SECONDARY)
+        self.canvas.create_text(205, 255, text="• Left Hand: Controls Paddle", font=(FONT_FAMILY, 12), fill=TEXT_SECONDARY)
+        self.canvas.create_text(205, 280, text="• Right Paddle: Auto AI", font=(FONT_FAMILY, 12), fill=TEXT_SECONDARY)
+        if is_1p:
+            self.canvas.create_text(205, 325, text="✓ SELECTED", font=(FONT_FAMILY, 12, "bold"), fill="#10b981")
+            
+        # 2-Player Card Box
+        is_2p = (selected_mode == MODE_2PLAYER)
+        box2_bg = "#1e293b" if is_2p else "#0f172a"
+        box2_outline = "#10b981" if is_2p else "#334155"
+        self.canvas.create_rectangle(390, 160, 640, 360, fill=box2_bg, outline=box2_outline, width=3 if is_2p else 1)
+        self.canvas.create_text(515, 195, text="👥 2-PLAYER MODE", font=(FONT_FAMILY, 16, "bold"), fill="#10b981" if is_2p else TEXT_LIGHT)
+        self.canvas.create_text(515, 230, text="• Local Multiplayer", font=(FONT_FAMILY, 12), fill=TEXT_SECONDARY)
+        self.canvas.create_text(515, 255, text="• Left Hand: Left Paddle", font=(FONT_FAMILY, 12), fill=TEXT_SECONDARY)
+        self.canvas.create_text(515, 280, text="• Right Hand: Right Paddle", font=(FONT_FAMILY, 12), fill=TEXT_SECONDARY)
+        if is_2p:
+            self.canvas.create_text(515, 325, text="✓ SELECTED", font=(FONT_FAMILY, 12, "bold"), fill="#10b981")
+
+        # Bottom Hint
+        self.canvas.create_text(CANVAS_WIDTH // 2, 420, text="💡 Tip: Toggle mode on sidebar panel anytime!", font=(FONT_FAMILY, 12, "italic"), fill=TEXT_DARK)
+
+    def draw_calibration_overlay(self, countdown_seconds, left_detected=False, right_detected=False, mode=MODE_1PLAYER):
+        """Draw 3-second camera calibration and countdown phase on canvas"""
+        self.canvas.delete("all")
+        
+        # Draw background pitch
+        self.canvas.create_rectangle(2, 2, CANVAS_WIDTH-2, CANVAS_HEIGHT-2, outline=COLOR_CENTER_LINE, width=4)
+        for i in range(0, CANVAS_HEIGHT, 20):
+            self.canvas.create_rectangle(CANVAS_WIDTH//2 - 2, i, CANVAS_WIDTH//2 + 2, i + 10, fill=COLOR_CENTER_LINE, outline='')
+
+        # Card Overlay
+        self.canvas.create_rectangle(110, 80, CANVAS_WIDTH - 110, CANVAS_HEIGHT - 80, fill="#0f172a", outline="#3b82f6", width=2)
+        
+        # Heading
+        self.canvas.create_text(CANVAS_WIDTH // 2, 120, text="📹 CAMERA CALIBRATION & COUNTDOWN", font=(FONT_FAMILY, 18, "bold"), fill=COLOR_INFO)
+        
+        # Hand Tracking Feedback Status
+        if mode == MODE_1PLAYER:
+            status_text = "👈 Left Hand: TRACKED ✓" if left_detected else "👈 Left Hand: Show hand to camera..."
+            status_color = "#10b981" if left_detected else "#f59e0b"
+            self.canvas.create_text(CANVAS_WIDTH // 2, 165, text=status_text, font=(FONT_FAMILY, 14, "bold"), fill=status_color)
+        else:
+            left_str = "Left: ✓" if left_detected else "Left: ✗"
+            right_str = "Right: ✓" if right_detected else "Right: ✗"
+            self.canvas.create_text(CANVAS_WIDTH // 2, 165, text=f"👈 {left_str}  |  👉 {right_str}", font=(FONT_FAMILY, 14, "bold"), fill="#10b981" if (left_detected or right_detected) else "#f59e0b")
+
+        # Countdown Display
+        if countdown_seconds > 0:
+            count_str = str(countdown_seconds)
+            self.canvas.create_text(CANVAS_WIDTH // 2, 250, text=count_str, font=(FONT_FAMILY, 64, "bold"), fill="#10b981")
+            self.canvas.create_text(CANVAS_WIDTH // 2, 320, text="Get Ready! Match starts in...", font=(FONT_FAMILY, 13), fill=TEXT_SECONDARY)
+        else:
+            self.canvas.create_text(CANVAS_WIDTH // 2, 250, text="🚀 GO!", font=(FONT_FAMILY, 64, "bold"), fill="#3b82f6")
+            self.canvas.create_text(CANVAS_WIDTH // 2, 320, text="Game On!", font=(FONT_FAMILY, 14, "bold"), fill="#10b981")
     
     def show_welcome_message(self):
-        """Show welcome message dialog"""
-        messagebox.showinfo("🎮 Welcome to Hand Pong!", WELCOME_MESSAGE)
+        # Create a modern CustomTkinter Toplevel window instead of standard messagebox
+        welcome_window = ctk.CTkToplevel(self.root)
+        welcome_window.title("Welcome to Hand Pong")
+        welcome_window.geometry("450x550")
+        welcome_window.resizable(False, False)
+        welcome_window.attributes('-topmost', True)
+        
+        # Center it on the screen
+        welcome_window.update_idletasks()
+        screen_width = welcome_window.winfo_screenwidth()
+        screen_height = welcome_window.winfo_screenheight()
+        x = (screen_width // 2) - (450 // 2)
+        y = (screen_height // 2) - (550 // 2)
+        welcome_window.geometry(f"450x550+{x}+{y}")
+        
+        # Title
+        title = ctk.CTkLabel(welcome_window, text="🎮 WELCOME TO HAND PONG", font=ctk.CTkFont(size=22, weight="bold"), text_color="#10b981")
+        title.pack(pady=(30, 10))
+        
+        # Message (Scrollable in case it's long)
+        msg_frame = ctk.CTkScrollableFrame(welcome_window, fg_color="transparent")
+        msg_frame.pack(fill="both", expand=True, padx=20, pady=10)
+        
+        # Content from config.py but skipping the first title line since we have a nice header
+        lines = WELCOME_MESSAGE.split('\n')
+        cleaned_msg = '\n'.join(lines[2:]) if len(lines) > 2 else WELCOME_MESSAGE
+        
+        content = ctk.CTkLabel(msg_frame, text=cleaned_msg, font=ctk.CTkFont(size=14), justify="left", text_color="#cbd5e1")
+        content.pack(anchor="w", padx=10, pady=10)
+        
+        # Button
+        btn = ctk.CTkButton(welcome_window, text="LET'S PLAY! 🚀", font=ctk.CTkFont(size=16, weight="bold"), 
+                            fg_color="#10b981", hover_color="#059669", height=50,
+                            command=welcome_window.destroy)
+        btn.pack(pady=(10, 30), padx=30, fill="x")
+        
+        # Make the window modal and wait for it to close
+        welcome_window.grab_set()
+        self.root.wait_window(welcome_window)
     
     def show_error(self, title, message):
-        """Show error dialog"""
         messagebox.showerror(title, message)
     
     def toggle_fullscreen(self):
-        """Toggle fullscreen mode"""
         self.is_fullscreen = not self.is_fullscreen
         self.root.attributes('-fullscreen', self.is_fullscreen)
-        
-        if self.is_fullscreen:
-            print("🖥️ Fullscreen mode activated (Press ESC or F11 to exit)")
-        else:
-            print("🪟 Windowed mode activated")
     
     def exit_fullscreen(self):
-        """Exit fullscreen mode"""
         if self.is_fullscreen:
             self.is_fullscreen = False
             self.root.attributes('-fullscreen', False)
-            print("🪟 Exited fullscreen mode")

@@ -21,9 +21,20 @@ class GameEngine:
         # Game state
         self.score = {'player1': 0, 'player2': 0}
         self.paused = False
+        self.game_mode = MODE_1PLAYER
+        
+        # Hand tracking timeout (frames before AI takes over)
+        self.hand_loss_timeout = 30
+        self.paddle1_lost_frames = 30  # Start fully lost
+        self.paddle2_lost_frames = 30  # Start fully lost
         
         # AI settings
         self.ai_difficulty = AI_DIFFICULTY
+    
+    def set_game_mode(self, mode):
+        """Set active game mode (MODE_1PLAYER or MODE_2PLAYER)"""
+        self.game_mode = mode
+        print(f"🎮 Game mode set to: {mode}")
     
     def reset(self):
         """Reset the entire game"""
@@ -101,16 +112,32 @@ class GameEngine:
         # Update left paddle
         if left_hand_data and left_hand_data.get('detected') and left_hand_data.get('paddle_y') is not None:
             self.update_paddle_from_hand(1, left_hand_data['paddle_y'])
+            self.paddle1_lost_frames = 0
         else:
-            # AI control
-            self.update_ai_paddle(self.paddle1)
+            self.paddle1_lost_frames += 1
+            if self.paddle1_lost_frames >= self.hand_loss_timeout:
+                # AI control only after grace period
+                self.update_ai_paddle(self.paddle1)
+            else:
+                # Still count as hand controlled during grace period so it doesn't change color
+                self.paddle1.is_hand_controlled = True
+                
+        self.paddle1.update_smooth()
         
         # Update right paddle
         if right_hand_data and right_hand_data.get('detected') and right_hand_data.get('paddle_y') is not None:
             self.update_paddle_from_hand(2, right_hand_data['paddle_y'])
+            self.paddle2_lost_frames = 0
         else:
-            # AI control
-            self.update_ai_paddle(self.paddle2)
+            self.paddle2_lost_frames += 1
+            if self.paddle2_lost_frames >= self.hand_loss_timeout:
+                # AI control only after grace period
+                self.update_ai_paddle(self.paddle2)
+            else:
+                # Still count as hand controlled during grace period
+                self.paddle2.is_hand_controlled = True
+                
+        self.paddle2.update_smooth()
         
         # Move ball
         self.ball.move()
