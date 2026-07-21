@@ -4,6 +4,7 @@ Handles all CustomTkinter GUI components and camera preview
 OPTIMIZED: Side-by-Side Dashboard Layout
 """
 
+import os
 import tkinter as tk
 import customtkinter as ctk
 from PIL import Image, ImageTk
@@ -18,6 +19,9 @@ class UIManager:
         self.root = root
         self.is_fullscreen = False
         
+        # Icon references
+        self.load_icons()
+        
         # Widget references
         self.canvas = None
         self.camera_preview = None
@@ -31,6 +35,30 @@ class UIManager:
         self.score_display = None
         
         self.setup_ui()
+
+    def load_icons(self):
+        """Load premium PNG icons from assets/icons"""
+        try:
+            icon_dir = os.path.join("assets", "icons")
+            get_icon = lambda name, size=(20, 20): ctk.CTkImage(
+                light_image=Image.open(os.path.join(icon_dir, f"{name}.png")),
+                dark_image=Image.open(os.path.join(icon_dir, f"{name}.png")),
+                size=size
+            )
+            self.icon_play = get_icon("play", (20, 20))
+            self.icon_stop = get_icon("stop", (20, 20))
+            self.icon_pause = get_icon("pause", (18, 18))
+            self.icon_quit = get_icon("quit", (18, 18))
+            self.icon_camera = get_icon("camera", (16, 16))
+            self.icon_lightning = get_icon("lightning", (16, 16))
+        except Exception as e:
+            print(f"⚠️ Icon loading notice: {e}")
+            self.icon_play = None
+            self.icon_stop = None
+            self.icon_pause = None
+            self.icon_quit = None
+            self.icon_camera = None
+            self.icon_lightning = None
     
     def setup_ui(self):
         self.root.title(WINDOW_TITLE)
@@ -175,39 +203,42 @@ class UIManager:
         ctk.CTkLabel(modes_card, text=gestures_text, font=ctk.CTkFont(size=13), text_color="#cbd5e1", justify="left").pack(anchor="w", padx=10, pady=(0, 10))
         
         # CONTROLS
-        self.start_stop_button = ctk.CTkButton(scrollable_sidebar, text="▶️ START MATCH",
+        self.start_stop_button = ctk.CTkButton(scrollable_sidebar, text=" START MATCH",
+                                               image=self.icon_play, compound="left",
                                                font=ctk.CTkFont(size=16, weight="bold"),
                                                fg_color="#10b981", hover_color="#059669", height=50)
         self.start_stop_button.pack(fill="x", pady=(0, 10))
         
-        self.pause_button = ctk.CTkButton(scrollable_sidebar, text="⏸️ PAUSE",
+        self.pause_button = ctk.CTkButton(scrollable_sidebar, text=" PAUSE",
+                                          image=self.icon_pause, compound="left",
                                           font=ctk.CTkFont(size=14, weight="bold"),
                                           fg_color="#f59e0b", hover_color="#d97706",
                                           state="disabled", height=40)
         self.pause_button.pack(fill="x", pady=(0, 10))
         
-        self.quit_button = ctk.CTkButton(scrollable_sidebar, text="✖️ QUIT",
+        self.quit_button = ctk.CTkButton(scrollable_sidebar, text=" QUIT",
+                                         image=self.icon_quit, compound="left",
                                          fg_color="#ef4444", hover_color="#dc2626", height=40)
         self.quit_button.pack(fill="x", pady=(10, 0))
     
     def update_camera_status(self, is_active):
         if is_active:
-            self.camera_status.configure(text="📹 ACTIVE", text_color="#10b981")
+            self.camera_status.configure(text="ACTIVE", text_color="#10b981")
             self.camera_indicator.configure(text="● LIVE", text_color="#10b981")
         else:
-            self.camera_status.configure(text="📹 OFF", text_color="#ef4444")
+            self.camera_status.configure(text="OFF", text_color="#ef4444")
             self.camera_indicator.configure(text="● OFF", text_color="#ef4444")
     
     def update_hand_status(self, left_detected, right_detected):
         if left_detected:
-            self.left_hand_status.configure(text="👈 Left: ✓", text_color="#10b981")
+            self.left_hand_status.configure(text="Left: ✓", text_color="#10b981")
         else:
-            self.left_hand_status.configure(text="👈 Left: ✗", text_color="gray")
+            self.left_hand_status.configure(text="Left: ✗", text_color="gray")
         
         if right_detected:
-            self.right_hand_status.configure(text="👉 Right: ✓", text_color="#10b981")
+            self.right_hand_status.configure(text="Right: ✓", text_color="#10b981")
         else:
-            self.right_hand_status.configure(text="👉 Right: ✗", text_color="gray")
+            self.right_hand_status.configure(text="Right: ✗", text_color="gray")
     
     def update_score(self, score):
         self.score_display.configure(text=f"{score['player1']} - {score['player2']}")
@@ -215,21 +246,21 @@ class UIManager:
     def update_fps(self, fps):
         fps_int = int(fps)
         fps_color = "#10b981" if fps_int >= 50 else "#f59e0b" if fps_int >= 30 else "#ef4444"
-        self.fps_display.configure(text=f"⚡ {fps_int} FPS", text_color=fps_color)
+        self.fps_display.configure(text=f"{fps_int} FPS", text_color=fps_color)
     
     def update_start_stop_button(self, is_running):
         if is_running:
-            self.start_stop_button.configure(text="⏹️ STOP GAME", fg_color="#ef4444", hover_color="#dc2626")
+            self.start_stop_button.configure(text=" STOP MATCH", image=self.icon_stop, fg_color="#ef4444", hover_color="#dc2626")
             self.pause_button.configure(state="normal")
         else:
-            self.start_stop_button.configure(text="▶️ START GAME", fg_color="#10b981", hover_color="#059669")
+            self.start_stop_button.configure(text=" START MATCH", image=self.icon_play, fg_color="#10b981", hover_color="#059669")
             self.pause_button.configure(state="disabled")
     
     def update_pause_button(self, is_paused):
         if is_paused:
-            self.pause_button.configure(text="▶️ RESUME", fg_color="#10b981", hover_color="#059669")
+            self.pause_button.configure(text=" RESUME", image=self.icon_play, fg_color="#10b981", hover_color="#059669")
         else:
-            self.pause_button.configure(text="⏸️ PAUSE", fg_color="#f59e0b", hover_color="#d97706")
+            self.pause_button.configure(text=" PAUSE", image=self.icon_pause, fg_color="#f59e0b", hover_color="#d97706")
     
     def update_camera_preview(self, frame, paused_overlay=False):
         try:
