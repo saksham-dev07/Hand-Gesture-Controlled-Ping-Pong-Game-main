@@ -2,254 +2,246 @@
 
 <div align="center">
 
-![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12-blue?logo=python&logoColor=white)
-![OpenCV](https://img.shields.io/badge/OpenCV-4.8.1-green?logo=opencv)
-![MediaPipe](https://img.shields.io/badge/MediaPipe-0.10.14-orange)
-![CustomTkinter](https://img.shields.io/badge/CustomTkinter-5.2.0-blue)
-![License](https://img.shields.io/badge/License-MIT-yellow)
-![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20Mac-lightgrey)
+[![Python Version](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.13-blue?logo=python&logoColor=white)](https://www.python.org/)
+[![OpenCV](https://img.shields.io/badge/OpenCV-4.8%2B-green?logo=opencv&logoColor=white)](https://opencv.org/)
+[![MediaPipe](https://img.shields.io/badge/MediaPipe-0.10%2B-orange)](https://ai.google.dev/edge/mediapipe/solutions/guide)
+[![CustomTkinter](https://img.shields.io/badge/CustomTkinter-5.2%2B-blue)](https://github.com/TomSchimansky/CustomTkinter)
+[![NumPy](https://img.shields.io/badge/NumPy-1.26%2B-013243?logo=numpy&logoColor=white)](https://numpy.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)](https://github.com/saksham-dev07/Hand-Gesture-Controlled-Ping-Pong-Game)
 
-**Play classic Pong using just your hands! No keyboard, no mouse, no controller needed.**
+**Play classic Ping Pong using real-time webcam hand gestures — no keyboard, mouse, or controller required!**
 
-[Features](#-features) • [Installation](#-installation) • [How to Play](#-how-to-play) • [Controls](#-gesture-controls) • [Configuration](#-configuration) • [Troubleshooting](#-troubleshooting)
+![Game Preview](assets/demo.png)
+
+[What It Does](#-what-the-project-does) • [Why It Is Useful](#-why-it-is-useful) • [Getting Started](#-getting-started) • [Controls & Shortcuts](#-controls--shortcuts) • [Architecture & Codebase](#-architecture--codebase) • [Where to Get Help](#-where-to-get-help) • [Contributing](#-maintainers--contributing)
 
 </div>
 
 ---
 
-## 🎯 Overview
-![Demo](assets/demo.png)
+## 📌 What the Project Does
 
-This is an interactive **Ping Pong (Pong) game** controlled entirely with **hand gestures** via your webcam! Built with Python, OpenCV, MediaPipe Tasks API, and CustomTkinter, this project demonstrates real-time multi-threaded computer vision and gesture recognition for a fluid, lag-free gaming experience.
+The **Hand Gesture Controlled Ping Pong Game** is an interactive computer vision desktop application that translates physical hand movements captured by a standard webcam into real-time paddle movement and game controls.
 
-The game features:
-- ⚡ **Multi-Threaded Camera Pipeline**: OpenCV capture and MediaPipe gesture recognition run asynchronously on a background thread (`CameraThread`), keeping GUI and physics locked at a rock-solid 60 FPS.
-- 🎯 **Main Menu & Game Modes**: Interactive canvas menu allowing mode switching between **🤖 1-Player (vs AI)** and **👥 2-Player (Local Multiplayer)**.
-- ⏳ **3-Second Calibration & Countdown**: Pre-match countdown screen providing real-time hand detection feedback before the ball drops.
-- ✋ **Hand Tracking & Interpolation**: Ultra-smooth exponential smoothing and target position interpolation to eliminate webcam movement jitter.
-- ✊ **Fist Gestures**: Pause/resume match using double fist or open palm gestures.
-- 👍👎 **Thumbs Speed Control**: Dynamically adjust ball velocity using Thumbs Up / Thumbs Down gestures.
-- 🎨 **Modern Dark Mode GUI**: Built with CustomTkinter, featuring real-time camera previews, live FPS counters, and modal dialogs.
+### Technical Architecture
 
----
+```mermaid
+flowchart LR
+    A[📹 Webcam Feed] --> B[⚡ CameraThread<br/>OpenCV Capture]
+    B --> C[✋ HandDetector<br/>MediaPipe Tasks API]
+    C --> D[🎯 Exponential Smoothing<br/>& Interpolation]
+    D --> E[🏓 Game Engine<br/>60 FPS Physics & AI]
+    E --> F[🖥️ UI Manager<br/>CustomTkinter GUI]
+```
 
-## ✨ Features
-
-### 🎮 Gameplay Features
-- **Main Menu**: Interactive canvas menu for selecting game modes before starting a match.
-- **Game Modes**:
-  - 🤖 **1-Player Mode**: Play against an adaptive AI opponent using your left hand.
-  - 👥 **2-Player Mode**: Local 2-player action where both left and right hands control the paddles.
-- **3-Second Calibration & Countdown**: 3... 2... 1... GO! countdown overlay validating hand tracking status before match start.
-- **Dynamic Ball Physics**: Realistic bouncing, hit position angle calculations, and speed scaling on paddle hits.
-- **Real-time Scoring & FPS Metrics**: Live score tracking and performance monitoring.
-- **Gesture Control Flow**: Pause/Resume game with double fists or open palms.
-
-### 👋 Hand Gesture Recognition
-- **Position Tracking**: Middle finger landmark tracking mapped directly to paddle coordinates.
-- **Fist Detection**: Gesture recognition using MediaPipe's Tasks API for pause/resume triggering.
-- **Thumbs Gestures**: Speed up (Thumbs Up 👍) or slow down (Thumbs Down 👎) the ball in real time.
-- **Gesture Cooldown**: Built-in 1.0s cooldown to prevent gesture spamming.
-
-### 🖥️ User Interface & Polish
-- **Side-by-Side Dashboard Layout**: Dedicated game pitch canvas on the left, live camera preview and controls dashboard on the right.
-- **Live Camera Preview**: Real-time webcam feed with colored hand skeleton landmarks.
-- **Status Badges**: Visual indicator icons for camera feed and hand tracking state (`Left: ✓`, `Right: ✓`).
-- **Fullscreen Support**: Toggle fullscreen with **F11**, exit with **Escape**.
-- **Debug Mode**: Toggle console gesture logging by pressing **D**.
-
-### ⚡ Technical & Threading Architecture
-- **Asynchronous Worker Thread (`CameraThread`)**: Moves camera frame acquisition (`cv2.VideoCapture`) and ML model inference (`GestureRecognizer`) off the main thread.
-- **Frame ID Synchronization**: The main loop safe-fetches new frames via thread locks without blocking the GUI or game physics.
-- **Position Interpolation (`update_smooth`)**: Interpolates 30 FPS camera coordinates to 60 FPS physics updates for buttery-smooth paddle motion.
+- **Asynchronous Worker Thread (`CameraThread`)**: Camera frame capture and MediaPipe ML gesture inference run off the main thread, keeping physics updates and GUI rendering locked at a smooth **60 FPS**.
+- **Real-Time Landmark Tracking**: Maps hand position (middle finger MCP joint) to paddle Y-coordinates using exponential moving average smoothing to eliminate movement jitter.
+- **Dynamic Gesture Recognition**: Recognizes fist and thumbs gestures using MediaPipe's Tasks API to trigger pause, resume, and speed boost actions.
 
 ---
 
-## 🎬 Gameplay Modes & Controls
+## ✨ Why It Is Useful
 
-### Gameplay Modes
+- **Zero Special Hardware**: Runs on any standard webcam — no controllers, sensors, or specialized hardware required.
+- **High-FPS Multi-Threaded Engine**: Asynchronous vision pipeline ensures zero main-thread lag or frame drops during gameplay.
+- **Multiple Game Modes**:
+  - 🤖 **1-Player Mode (vs AI)**: Compete against an adaptive AI opponent using your left hand.
+  - 👥 **2-Player Mode (Local)**: Local head-to-head multiplayer where two players control paddles simultaneously.
+- **Pre-Match 3-Second Calibration**: Integrated countdown screen that validates hand tracking before launching the ball.
+- **Dynamic Physics & Angle Deflection**: Ball deflection angles depend on where the ball hits the paddle, rewarding skilled placement.
+- **Extensible Architecture**: Decoupled module design in [`src/`](src/) ideal for computer vision research, custom ML models, or arcade game development.
 
-| Mode | Description | Controls |
-|------|-------------|----------|
-| 🤖 **1-Player Mode (vs AI)** | Play solo against a smart adaptive AI opponent | Left Hand controls Left Paddle, Right Paddle is AI |
-| 👥 **2-Player Mode (Local)** | Local multiplayer for 2 players in front of camera | Left Hand = Left Paddle, Right Hand = Right Paddle |
-
-### Gesture Controls Summary
-
-| Gesture | Action | Visual |
-|---------|--------|--------|
-| **Open Palm** | Control paddle up/down | ✋ |
-| **Fist (Both Hands)** | Pause game | ✊✊ |
-| **Open Palms (Both Hands)** | Resume game | 👐👐 |
-| **Thumbs Up** | Increase ball speed | 👍 |
-| **Thumbs Down** | Decrease ball speed | 👎 |
+> [!TIP]
+> **Optimal Tracking Environment**: For best gesture tracking performance, operate in a well-lit room with your hands clearly visible to the camera. Avoid direct strong light sources behind your back.
 
 ---
 
-## 📦 Prerequisites
+## 🚀 Getting Started
 
-### System Requirements
-- **Operating System**: Windows 10/11, Linux, or macOS
-- **Python**: Version 3.11 or 3.12 (recommended)
-- **Webcam**: Built-in laptop webcam or USB camera
-- **RAM**: Minimum 4GB (8GB recommended)
-- **Processor**: Multi-core CPU for multi-threaded performance
+### Prerequisites
 
----
+- **Python**: Version 3.11, 3.12, or 3.13
+- **Webcam**: Built-in laptop camera or external USB webcam
+- **Operating System**: Windows 10/11, macOS, or Linux
 
-## 🚀 Installation
+### Installation
 
-### Quick Start (Windows)
+#### Automated Quick Start (Windows)
+Clone the repository and run the one-click launcher:
+```bash
+git clone https://github.com/saksham-dev07/Hand-Gesture-Controlled-Ping-Pong-Game.git
+cd Hand-Gesture-Controlled-Ping-Pong-Game
+INSTALL.bat
+```
 
-1. **Clone or Download** this repository:
-   ```bash
-   git clone https://github.com/saksham-dev07/Hand-Gesture-Controlled-Ping-Pong-Game.git
-   cd Hand-Gesture-Controlled-Ping-Pong-Game-main
-   ```
+> [!NOTE]
+> `INSTALL.bat` automatically sets up the Python virtual environment, installs required packages, downloads the missing MediaPipe `gesture_recognizer.task` model to `assets/`, and launches the application.
 
-2. **Run Automatic Setup**:
-   ```bash
-   INSTALL.bat
-   ```
-   *This automatically sets up a working virtual environment, installs dependencies, downloads MediaPipe models if missing, and launches the app!*
-
-### Manual Installation (All Platforms)
+#### Manual Installation (Cross-Platform)
 
 1. **Clone the repository**:
    ```bash
    git clone https://github.com/saksham-dev07/Hand-Gesture-Controlled-Ping-Pong-Game.git
-   cd Hand-Gesture-Controlled-Ping-Pong-Game-main
+   cd Hand-Gesture-Controlled-Ping-Pong-Game
    ```
 
-2. **Create virtual environment**:
-   ```bash
-   # Windows
-   python -m venv venv
-   venv\Scripts\activate
-
-   # Linux/macOS
-   python3 -m venv venv
-   source venv/bin/activate
-   ```
+2. **Create and activate a virtual environment**:
+   - **Windows**:
+     ```bash
+     python -m venv venv
+     venv\Scripts\activate
+     ```
+   - **macOS / Linux**:
+     ```bash
+     python3 -m venv venv
+     source venv/bin/activate
+     ```
 
 3. **Install dependencies**:
    ```bash
    pip install -r requirements.txt
    ```
 
-4. **Run the game**:
+4. **Verify setup & download model assets**:
    ```bash
-   python src/main.py
+   python setup.py
    ```
 
 ---
 
-## 🎮 How to Play
+## 🎮 Controls & Shortcuts
 
-1. **Launch App**: Open the game via `INSTALL.bat` or `python src/main.py`.
-2. **Main Menu**: Choose your mode on the sidebar panel (**🤖 1-Player** or **👥 2-Player**).
-3. **Start Match**: Click **▶️ START MATCH**.
-4. **Calibration Phase**: A 3-second countdown will start while verifying your hand tracking status (`Left Hand: TRACKED ✓`).
-5. **Game On**:
-   - Move your hand **UP/DOWN** to move your paddle.
-   - Close **BOTH FISTS** to pause the game.
-   - Open **BOTH PALMS** to resume.
-   - Show **THUMBS UP** to boost ball speed or **THUMBS DOWN** to slow it down.
-6. **Return to Menu**: Click **⏹️ STOP MATCH** at any time to return to the Main Menu.
+### Gesture Controls
+
+| Gesture | Action | Description | Visual |
+| :--- | :--- | :--- | :---: |
+| **Open Palm** | Move Paddle | Move hand vertically up/down to adjust paddle position | ✋ |
+| **Both Fists** | Pause Match | Close both hands into fists to pause the active match | ✊✊ |
+| **Both Open Palms** | Resume Match | Open both hands into palms to resume match | 👐👐 |
+| **Thumbs Up** | Boost Speed | Show Thumbs Up gesture to increase ball velocity | 👍 |
+| **Thumbs Down** | Lower Speed | Show Thumbs Down gesture to decrease ball velocity | 👎 |
+
+### Keyboard Shortcuts
+
+| Key | Function |
+| :--- | :--- |
+| **F11** | Toggle Fullscreen Mode |
+| **Escape** | Exit Fullscreen Mode |
+| **D** / **d** | Toggle Debug Overlay & Console Gesture Logs |
 
 ---
 
-## ⚙️ Configuration
+## 💻 Usage & Code Snippets
 
-All settings can be customized in **`src/config.py`**:
+### Launching the Game
+```bash
+python src/main.py
+```
+
+### Customizing Configuration Parameters
+Adjust court dimensions, gesture confidence cutoffs, and physics constants in [`src/config.py`](src/config.py):
 
 ```python
-# Game & Canvas Dimensions
-CANVAS_WIDTH = 720          # Pitch width in pixels
-CANVAS_HEIGHT = 480         # Pitch height in pixels
+# Custom configuration snippet in src/config.py
 
-# Camera Settings
-CAMERA_WIDTH = 640          # Camera capture width
-CAMERA_HEIGHT = 480         # Camera capture height
-CAMERA_FPS = 60            # Target camera FPS
+# Pitch & Canvas Dimensions
+CANVAS_WIDTH = 720
+CANVAS_HEIGHT = 480
 
-# Hand Detection & Thresholds
-HAND_CONFIDENCE_THRESHOLD = 0.5       # MediaPipe confidence cutoff
-HAND_POSITION_SMOOTHING_FACTOR = 0.3 # Exponential moving average factor
-HAND_POSITION_DEADZONE = 0.0          # Movement deadzone
+# Camera & Hand Tracking Thresholds
+HAND_CONFIDENCE_THRESHOLD = 0.5        # Cutoff confidence score for MediaPipe
+HAND_POSITION_SMOOTHING_FACTOR = 0.3  # Exponential moving average factor (lower = smoother)
 
-# Ball Physics
-BALL_INITIAL_SPEED = 5.0    # Initial velocity magnitude
-BALL_MAX_SPEED = 18.0       # Max speed cap
-BALL_MIN_SPEED = 3.0        # Min speed floor
-
-# Calibration & Countdown
-CALIBRATION_COUNTDOWN_SECONDS = 3     # Pre-match countdown duration
+# Ball Physics Limits
+BALL_INITIAL_SPEED = 5.0
+BALL_MAX_SPEED = 18.0
 ```
 
----
+### Programmatic Component Instantiation
+Integrate core modules into custom computer vision scripts:
 
-## 📁 Project Structure
+```python
+from src.camera_thread import CameraThread
+from src.game_engine import GameEngine
 
-```
-Hand-Gesture-Controlled-Ping-Pong-Game-main/
-│
-├── 📁 src/                     # Source code directory
-│   ├── 📄 main.py              # Main app entry point & state orchestrator
-│   ├── 📄 config.py            # Configuration settings & constants
-│   ├── 📄 camera_thread.py     # Background worker thread for camera & MediaPipe
-│   ├── 📄 hand_detector.py     # MediaPipe Tasks API integration & landmark drawing
-│   ├── 📄 game_engine.py       # Game logic, physics, mode handling & AI
-│   ├── 📄 game_objects.py      # Ball and Paddle physics objects
-│   └── 📄 ui_manager.py        # CustomTkinter GUI & canvas rendering
-│
-├── 📁 assets/                  # Game assets & MediaPipe models
-│   ├── 📄 gesture_recognizer.task # MediaPipe gesture model
-│   └── 📄 demo.jpg             # Demonstration screenshot
-│
-├── 📄 INSTALL.bat              # Windows one-click installer script
-├── 📄 setup.py                 # Automated setup & model downloader
-├── 📄 requirements.txt         # Dependencies (opencv, mediapipe, customtkinter, etc.)
-└── 📄 README.md                # Project documentation
+# Initialize background vision worker thread
+camera_thread = CameraThread()
+camera_thread.start()
+
+# Initialize game engine & select game mode
+engine = GameEngine()
+engine.set_game_mode("1PLAYER")  # Supported modes: "1PLAYER", "2PLAYER"
 ```
 
-### Module Architecture
-
-| Module | Responsibilities |
-|--------|------------------|
-| **`src/main.py`** | Main loop, state machine (`MENU`, `CALIBRATING`, `PLAYING`), countdown timer, input bindings |
-| **`src/camera_thread.py`** | Asynchronous daemon thread for OpenCV capture and MediaPipe processing |
-| **`src/hand_detector.py`** | MediaPipe Tasks API integration, gesture recognition, landmark drawing |
-| **`src/game_engine.py`** | Game state, ball movement, collision detection, scoring, AI behavior |
-| **`src/game_objects.py`** | Ball and Paddle entities with target position smoothing (`update_smooth`) |
-| **`src/ui_manager.py`** | CustomTkinter GUI layout, Main Menu rendering, Calibration overlay, side dashboard |
-| **`src/config.py`** | Central configuration for dimensions, thresholds, colors, and constants |
+> [!IMPORTANT]
+> The vision worker thread runs asynchronously (`daemon=True`). Always access shared frame data using thread-safe accessors in `CameraThread` to prevent UI thread lockups.
 
 ---
 
-## 🐛 Troubleshooting
+## 🏗️ Architecture & Codebase
 
-#### 1. **Camera Not Opening**
-- Ensure no other application (Zoom, Teams, Skype) is using your webcam.
-- Check camera privacy permissions in system settings.
+```
+Hand-Gesture-Controlled-Ping-Pong-Game/
+├── 📁 src/
+│   ├── 📄 main.py           # Application entry point & state machine orchestrator
+│   ├── 📄 config.py         # Global configuration constants and parameters
+│   ├── 📄 camera_thread.py  # Background worker thread for camera capture & MediaPipe
+│   ├── 📄 hand_detector.py # MediaPipe Tasks API integration & landmark visualization
+│   ├── 📄 game_engine.py   # Core physics engine, collision math, & AI logic
+│   ├── 📄 game_objects.py  # Ball and Paddle entities with target smoothing
+│   └── 📄 ui_manager.py    # CustomTkinter GUI layout & canvas rendering
+├── 📁 assets/               # Gesture recognizer models, icons, and preview media
+├── 📄 INSTALL.bat          # Automated Windows installer & launcher
+├── 📄 setup.py             # Setup script & MediaPipe model downloader
+├── 📄 requirements.txt     # Python dependency manifest
+├── 📄 CONTRIBUTING.md      # Developer contribution guidelines
+├── 📄 LICENSE              # MIT License details
+└── 📄 README.md            # Main project documentation
+```
 
-#### 2. **Jittery Paddle Movement**
-- We use position smoothing (`HAND_POSITION_SMOOTHING_FACTOR = 0.3`) and paddle interpolation (`update_smooth()`).
-- Ensure adequate room lighting so the webcam maintains a consistent exposure rate.
+### Module Responsibilities
 
-#### 3. **Hand Lines Flickering**
-- Verify that `FRAME_SKIP = 1` and `HAND_LANDMARK_DRAW_FREQ = 1` in `src/config.py`.
+| Module | Core Responsibility |
+| :--- | :--- |
+| [`src/main.py`](src/main.py) | Game loop orchestrator, state machine (`MENU`, `CALIBRATING`, `PLAYING`), timer & shortcut bindings |
+| [`src/camera_thread.py`](src/camera_thread.py) | Asynchronous daemon thread handling OpenCV video capture and MediaPipe gesture detection |
+| [`src/hand_detector.py`](src/hand_detector.py) | MediaPipe Tasks API gesture classification and skeleton landmark visualization |
+| [`src/game_engine.py`](src/game_engine.py) | Ball physics, paddle reflection math, scoring logic, and adaptive AI opponent behavior |
+| [`src/game_objects.py`](src/game_objects.py) | Ball and Paddle object models featuring smooth target position interpolation (`update_smooth`) |
+| [`src/ui_manager.py`](src/ui_manager.py) | CustomTkinter dark mode GUI layout, live camera preview panel, and interactive main menu |
+| [`src/config.py`](src/config.py) | Centralized constants for canvas dimensions, colors, thresholds, and initial speeds |
 
 ---
 
-## 📝 License
+## 💬 Where to Get Help
 
-This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+- **Issue Tracker**: Report bugs or request feature enhancements via [GitHub Issues](https://github.com/saksham-dev07/Hand-Gesture-Controlled-Ping-Pong-Game/issues).
+- **Community Discussions**: Share feedback and discuss feature ideas on [GitHub Discussions](https://github.com/saksham-dev07/Hand-Gesture-Controlled-Ping-Pong-Game/discussions).
+- **Source Documentation**: Inspect source code implementation details directly in [`src/`](src/).
 
 ---
 
-## 🙏 Acknowledgments
+## 👥 Maintainers & Contributing
 
-- **MediaPipe** by Google for real-time vision & gesture tracking APIs.
-- **OpenCV** for camera feed processing.
-- **CustomTkinter** for modern dark mode UI widgets.
+### Maintainer
+
+- **Saksham** ([@saksham-dev07](https://github.com/saksham-dev07)) — Lead Developer & Project Maintainer
+
+### Contributing
+
+Contributions are warmly welcomed! To contribute:
+
+1. Fork the repository.
+2. Create a feature branch (`git checkout -b feature/amazing-feature`).
+3. Commit your changes (`git commit -m 'Add amazing feature'`).
+4. Push to your branch (`git push origin feature/amazing-feature`).
+5. Open a Pull Request.
+
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on code formatting, testing standards, and pull request guidelines.
+
+---
+
+## 📜 License
+
+Distributed under the MIT License. See [LICENSE](LICENSE) for more information.
