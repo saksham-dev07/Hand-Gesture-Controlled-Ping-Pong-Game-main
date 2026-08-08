@@ -10,7 +10,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)](https://github.com/saksham-dev07/Hand-Gesture-Controlled-Ping-Pong-Game)
 
-**Play classic Ping Pong using real-time webcam hand gestures — no keyboard, mouse, or controller required!**
+**Play classic Ping Pong using real-time webcam hand gestures — no keyboard, mouse, or controller required !**
 
 ![Game Preview](assets/demo.png)
 
